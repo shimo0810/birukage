@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ビルかげチェイス">
+<meta name="theme-color" content="#0d0f12">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>ビルかげチェイス</title>
+<style>
+:root{
+  --bg:#0d0f12; --panel:#171a1f; --panel2:#1f242b; --line:#2b313a;
+  --ink:#eceff3; --muted:#8b939f; --accent:#4fc3ff; --police:#2f7df6; --danger:#e8394f; --gold:#ffcf3f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  font-feature-settings:"palt"}
+body{background:radial-gradient(120% 120% at 0% 50%,#1a1e24 0%,#0d0f12 60%)}
+#app{position:fixed;inset:0;display:flex;gap:14px;
+  padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+#boardWrap{flex:none;height:100%;aspect-ratio:1/1;max-width:62vw;position:relative;border-radius:14px;overflow:hidden;
+  box-shadow:0 0 0 1px #2a2f36,0 10px 30px rgba(0,0,0,.6)}
+#base,#board{position:absolute;inset:0;width:100%;height:100%;display:block}
+#panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+
+.top{display:flex;align-items:center;gap:8px}
+.lights{display:flex;gap:3px}
+.lights i{width:7px;height:7px;border-radius:50%;display:block}
+.lights i:first-child{background:#e8394f;box-shadow:0 0 8px #e8394f}
+.lights i:last-child{background:#2f7df6;box-shadow:0 0 8px #2f7df6}
+.top .title{font-weight:800;font-size:14px;letter-spacing:.06em;white-space:nowrap}
+.top .round{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap;letter-spacing:.08em}
+.top .round b{color:var(--ink);font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:0;margin:0 2px}
+.iconbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;font-size:12px;padding:6px 9px;font-family:inherit}
+.track{display:flex;gap:4px;align-items:center}
+.slot{flex:1;max-width:30px;height:19px;border-radius:3px;position:relative;display:grid;place-items:center;
+  font-size:10px;font-weight:800;color:#fff;background:#2a2f37;font-variant-numeric:tabular-nums}
+.slot::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:3px 3px 0 0;background:var(--c)}
+.slot.full{background:linear-gradient(#fff2,#0002),var(--c);}
+.slot.full.y{color:#3a2b00}
+.slot.used{background:#14171b;color:#5b636e;box-shadow:inset 0 0 0 1px #2a2f37}
+.slot.cur{box-shadow:0 0 0 2px #fff}
+
+.card{background:linear-gradient(180deg,#1c2026,#171a1f);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.phase{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px}
+.badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:5px;letter-spacing:.05em}
+.b-police{background:#173a75;color:#a8ccff;box-shadow:inset 0 0 0 1px #2f5fb0}
+.b-thief{background:#5b1622;color:#ffb3bf;box-shadow:inset 0 0 0 1px #9a2a3c}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+.scroll{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:6px}
+
+.heli{display:flex;align-items:center;gap:9px;background:var(--panel);border:1.5px solid var(--line);border-radius:11px;padding:5px 10px;font-size:13px;font-weight:600}
+.heli svg{width:30px;height:30px;flex:none}
+.heli .st{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500}
+.heli.sel{border-color:var(--accent);background:#14232f;box-shadow:0 0 0 1px #4fc3ff33}
+.heli.done{opacity:.45}
+.toast{font-size:13px;padding:7px 10px;border-radius:10px;background:#1b2028;border-left:4px solid var(--accent);line-height:1.4}
+.toast.hit{border-left-color:var(--gold)}
+.toast.bad{border-left-color:#59616d}
+
+.actions{display:flex;gap:8px}
+.btn{flex:1;border:none;border-radius:12px;padding:11px 10px;font-size:15px;font-weight:800;font-family:inherit;color:#fff;
+  background:linear-gradient(180deg,#3a8cff,#2563d9);box-shadow:inset 0 1px 0 #ffffff40,0 2px 8px #0006}
+.btn.sub{background:var(--panel2);color:var(--ink);border:1px solid var(--line);font-weight:700;box-shadow:none}
+.btn.red{background:linear-gradient(180deg,#f04a5f,#c32539)}
+.btn:disabled{opacity:.35}
+
+.overlay{position:fixed;inset:0;display:none;z-index:20}
+.overlay.on{display:flex}
+#cover{background:#07080a;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;overflow:hidden}
+#cover .bgimg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(7px) brightness(.38) saturate(.8);transform:scale(1.05)}
+#cover .bgimg::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0%,#000a 80%)}
+#cover > *:not(.bgimg){position:relative;z-index:1}
+#cover h1{margin:0;font-size:32px;letter-spacing:.08em;text-shadow:0 2px 12px #000}
+#cover p{margin:0;color:#c3c9d2;font-size:14px;line-height:1.6;text-shadow:0 1px 6px #000}
+#cover .emb{display:flex;gap:6px;justify-content:center}
+#cover .emb i{width:46px;height:6px;border-radius:3px;display:block}
+.hold{position:relative;overflow:hidden;border:none;border-radius:16px;padding:16px 34px;font-size:18px;font-weight:800;font-family:inherit;color:#fff;min-width:260px;margin-top:6px;box-shadow:inset 0 1px 0 #ffffff40,0 6px 20px #0008}
+.hold span{position:relative;z-index:1}
+.hold::before{content:"";position:absolute;inset:0;width:0;background:rgba(255,255,255,.35)}
+.hold.holding::before{width:100%;transition:width .8s linear}
+.hold.p{background:linear-gradient(180deg,#3a8cff,#1f55c4)}
+.hold.t{background:linear-gradient(180deg,#f04a5f,#b01f33)}
+.hold.n{background:linear-gradient(180deg,#4b5563,#2f3640)}
+.covrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+#modal{background:rgba(3,4,6,.72);align-items:center;justify-content:center;z-index:30;padding:16px}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;max-width:560px;width:100%;max-height:100%;overflow:auto}
+.mbox h2{margin:0 0 8px;font-size:18px}
+.mbox p,.mbox li{font-size:13.5px;line-height:1.65;color:#cfd4dc}
+.mbox ul{padding-left:1.2em;margin:6px 0}
+.mbox .actions{margin-top:12px}
+
+#rotate{position:fixed;inset:0;z-index:50;background:#07080a;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:24px}
+#rotate .phone{width:46px;height:80px;border:3px solid var(--accent);border-radius:10px;animation:rot 2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (orientation:portrait){#rotate{display:flex}}
+
+/* svg overlay */
+.spin{transform-box:fill-box;transform-origin:center;animation:spin .18s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pulse{animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.ping{animation:ping 1.1s ease-out forwards;transform-box:fill-box;transform-origin:center}
+@keyframes ping{from{opacity:1;transform:scale(.7)}to{opacity:0;transform:scale(1.5)}}
+.hover{animation:hover 2.4s ease-in-out infinite}
+@keyframes hover{50%{transform:translate(.6px,-.8px)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="boardWrap">
+    <canvas id="base" width="1400" height="1400"></canvas>
+    <svg id="board" viewBox="-12 -12 524 524" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div id="panel"></div>
+</div>
+<div id="cover" class="overlay"></div>
+<div id="modal" class="overlay"></div>
+<div id="rotate"><div class="phone"></div><div style="font-weight:800;font-size:18px">横向きにしてください</div><div style="color:var(--muted);font-size:13px">このゲームは横画面で遊びます</div></div>
+
+<script>
+'use strict';
+const KEY='bkchase-save-v1';
+const ROUNDS=11;
+const HELI=[{name:'ピンク',color:'#ff5fa2',dark:'#a8235d'},{name:'イエロー',color:'#ffcf3f',dark:'#a97d00'},{name:'グリーン',color:'#3fd17f',dark:'#167a43'}];
+const HELI_ANG=[-25,15,40];
+const traceColor=r=>r===1?'#ffcf3f':r===6?'#e8394f':'#2f7df6';
+const traceName=r=>r===1?'黄':r===6?'赤':'青';
+
+/* ---------- geometry ---------- */
+const bRC=b=>[Math.floor(b/5),b%5];
+const bCenter=b=>[50+100*(b%5),50+100*Math.floor(b/5)];
+const iCenter=i=>[100*(i%4+1),100*(Math.floor(i/4)+1)];
+function bAdj(b){const [r,c]=bRC(b),o=[];if(r>0)o.push(b-5);if(r<4)o.push(b+5);if(c>0)o.push(b-1);if(c<4)o.push(b+1);return o}
+function iAdj(i){const r=Math.floor(i/4),c=i%4,o=[];if(r>0)o.push(i-4);if(r<3)o.push(i+4);if(c>0)o.push(i-1);if(c<3)o.push(i+1);return o}
+function iBuildings(i){const r=Math.floor(i/4),c=i%4;return [r*5+c,r*5+c+1,(r+1)*5+c,(r+1)*5+c+1]}
+
+/* ---------- random ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,R=Math.random){for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+/* ---------- city layout (deterministic from seed) ---------- */
+const ROOFS=['#8f8d87','#a39c8f','#6f6e6a','#b3b0a8','#7d7a73','#9a8f7f','#c2bfb6','#5f6062','#87807a','#a7a59e'];
+let LAYOUT=null;
+function genLayout(seed,sizes){
+  const R=mulberry32(seed*7919+13);const L=[];
+  for(let b=0;b<25;b++){
+    const [r,c]=bRC(b);const lx=c*100+18,ly=r*100+18;const big=!!sizes[b];
+    const w=big?50+Math.round(R()*8):38+Math.round(R()*8);
+    const h=big?50+Math.round(R()*8):36+Math.round(R()*9);
+    const jx=(R()-.5)*(64-w)*.6,jy=(R()-.5)*(64-h)*.6;
+    const x=Math.round(lx+(64-w)/2+jx),y=Math.round(ly+(64-h)/2+jy);
+    L.push({x,y,w,h,big,lx,ly,hgt:big?15+R()*9:6+R()*6,roof:ROOFS[Math.floor(R()*ROOFS.length)],
+      tmpl:Math.floor(R()*(big?3:4)),lot:big?(R()<.5?'plaza':'grass'):['parking','grass','plaza'][Math.floor(R()*3)],r1:R(),r2:R()});
+  }
+  return L;
+}
+
+/* ---------- canvas base drawing ---------- */
+function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;
+  const f=v=>Math.max(0,Math.min(255,Math.round(amt>=0?v+(255-v)*amt:v*(1+amt))));return `rgb(${f(r)},${f(g)},${f(b)})`}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+const SUN=[.78,.62]; // shadow direction per unit height
+function boxShadow(ctx,x,y,w,h,hg,alpha){
+  const dx=hg*SUN[0],dy=hg*SUN[1];
+  ctx.fillStyle=`rgba(10,12,16,${alpha})`;ctx.beginPath();
+  ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w+dx,y+dy);ctx.lineTo(x+w+dx,y+h+dy);ctx.lineTo(x+dx,y+h+dy);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill();
+}
+function drawTree(ctx,x,y,r,R){
+  ctx.fillStyle='rgba(10,14,8,.38)';ctx.beginPath();ctx.ellipse(x+r*.7,y+r*.55,r*1.02,r*.95,0,0,Math.PI*2);ctx.fill();
+  const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);
+  const base=['#5a8a3c','#4f7f37','#628f43','#4a7833'][Math.floor(R()*4)];
+  g.addColorStop(0,shade(base,.25));g.addColorStop(.7,base);g.addColorStop(1,shade(base,-.35));
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  for(let k=0;k<4;k++){const a=R()*6.28,d=R()*r*.55;ctx.fillStyle=`rgba(${R()<.5?'210,235,170':'20,40,15'},.18)`;
+    ctx.beginPath();ctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,r*(.25+R()*.2),0,Math.PI*2);ctx.fill()}
+}
+function drawCarSmall(ctx,x,y,ang,color){
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+  ctx.fillStyle='rgba(0,0,0,.35)';rr(ctx,-2.2+.9,-4.4+.8,4.4,8.8,1.4);ctx.fill();
+  ctx.fillStyle=color;rr(ctx,-2.2,-4.4,4.4,8.8,1.4);ctx.fill();
+  ctx.fillStyle='rgba(20,26,34,.85)';rr(ctx,-1.7,-2.6,3.4,1.6,.5);ctx.fill();rr(ctx,-1.6,1.6,3.2,1.2,.5);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.18)';rr(ctx,-1.6,-1,3.2,2.6,.5);ctx.fill();
+  ctx.restore();
+}
+const CARCOL=['#e9e9e6','#c7c9cc','#2a2c30','#8d9196','#3a4a63','#e9e9e6','#6b2a2a','#d8d4c8'];
+function roofItems(ctx,B,R){
+  const {x,y,w,h}=B;const roofc=B.roof;
+  const pent=(px,py,pw,ph)=>{boxShadow(ctx,px,py,pw,ph,4,.32);ctx.fillStyle=shade(roofc,.14);ctx.fillRect(px,py,pw,ph);
+    ctx.strokeStyle=shade(roofc,.3);ctx.lineWidth=.6;ctx.strokeRect(px+.3,py+.3,pw-.6,ph-.6);
+    ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(px+1,py+1,pw-2,1)};
+  const hvac=(px,py)=>{boxShadow(ctx,px,py,10,7,2.2,.35);const g=ctx.createLinearGradient(px,py,px+10,py+7);g.addColorStop(0,'#b4b8bd');g.addColorStop(1,'#7c8186');
+    ctx.fillStyle=g;rr(ctx,px,py,10,7,.8);ctx.fill();
+    for(const fx of [px+2.8,px+7.2]){ctx.fillStyle='#34373b';ctx.beginPath();ctx.arc(fx,py+3.5,2.2,0,6.29);ctx.fill();
+      ctx.strokeStyle='#6d7277';ctx.lineWidth=.35;ctx.beginPath();ctx.moveTo(fx-2,py+3.5);ctx.lineTo(fx+2,py+3.5);ctx.moveTo(fx,py+1.5);ctx.lineTo(fx,py+5.5);ctx.stroke()}};
+  const tank=(cx,cy,r)=>{ctx.fillStyle='rgba(10,12,16,.35)';ctx.beginPath();ctx.ellipse(cx+r*.9,cy+r*.7,r,r,0,0,6.29);ctx.fill();
+    const g=ctx.createRadialGradient(cx-r*.4,cy-r*.4,r*.1,cx,cy,r);g.addColorStop(0,'#eeeeea');g.addColorStop(1,'#8c8c86');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,6.29);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=.5;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,r*.45,0,6.29);ctx.stroke()};
+  const solar=(px,py,cols,rows)=>{for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const qx=px+i*5.4,qy=py+j*4.2;
+    ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(qx+.8,qy+.8,5,3.6);
+    const g=ctx.createLinearGradient(qx,qy,qx+5,qy+3.6);g.addColorStop(0,'#3b5d8a');g.addColorStop(1,'#16263f');ctx.fillStyle=g;ctx.fillRect(qx,qy,5,3.6);
+    ctx.strokeStyle='rgba(180,200,230,.35)';ctx.lineWidth=.25;ctx.strokeRect(qx,qy,5,3.6);ctx.beginPath();ctx.moveTo(qx+2.5,qy);ctx.lineTo(qx+2.5,qy+3.6);ctx.stroke()}};
+  const sky=(px,py,sw,sh)=>{const g=ctx.createLinearGradient(px,py,px+sw,py+sh);g.addColorStop(0,'#a9c0cc');g.addColorStop(1,'#5d7380');
+    ctx.fillStyle=shade(roofc,.2);ctx.fillRect(px-.8,py-.8,sw+1.6,sh+1.6);ctx.fillStyle=g;ctx.fillRect(px,py,sw,sh);
+    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(px+.6,py+sh-.6);ctx.lineTo(px+sw*.6,py+.6);ctx.stroke()};
+  const pad=(cx,cy,r)=>{ctx.fillStyle='#4e5154';ctx.beginPath();ctx.arc(cx,cy,r,0,6.29);ctx.fill();
+    ctx.strokeStyle='#e9e3cf';ctx.lineWidth=1.1;ctx.beginPath();ctx.arc(cx,cy,r-2,0,6.29);ctx.stroke();
+    ctx.strokeStyle='#e0b631';ctx.lineWidth=.6;ctx.setLineDash([2,1.6]);ctx.beginPath();ctx.arc(cx,cy,r-.6,0,6.29);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#ece6d2';const s=r*.42;ctx.fillRect(cx-s,cy-s,s*.38,s*2);ctx.fillRect(cx+s-s*.38,cy-s,s*.38,s*2);ctx.fillRect(cx-s,cy-s*.18,s*2,s*.36)};
+  const garden=(px,py,gw,gh)=>{ctx.fillStyle='#6c8a4a';rr(ctx,px,py,gw,gh,1.5);ctx.fill();
+    ctx.strokeStyle='#9a917f';ctx.lineWidth=.8;ctx.stroke();
+    for(let k=0;k<Math.floor(gw*gh/28);k++){const tx=px+2+R()*(gw-4),ty=py+2+R()*(gh-4);ctx.fillStyle=R()<.5?'#4f7536':'#86a65c';ctx.beginPath();ctx.arc(tx,ty,1+R()*1.4,0,6.29);ctx.fill()}};
+  if(B.big){
+    if(B.tmpl===0){pad(x+w/2,y+h/2,Math.min(w,h)*.3);hvac(x+w-15,y+5);tank(x+8,y+h-8,3.8)}
+    else if(B.tmpl===1){pent(x+5,y+5,15,11);solar(x+6,y+h-14,Math.floor((w-12)/5.4),2);hvac(x+w-15,y+6);tank(x+w-10,y+23,4)}
+    else{garden(x+5,y+Math.round(h*.48),w-10,Math.round(h*.44));pent(x+w-20,y+5,14,11);sky(x+6,y+6,8,5);sky(x+6,y+14,8,5)}
+  }else{
+    if(B.tmpl===0){pent(x+5,y+5,12,10);hvac(x+w-15,y+h-12)}
+    else if(B.tmpl===1){for(let k=0;k<3;k++)sky(x+6+k*9,y+h/2-2,6.5,4.5);hvac(x+w-15,y+5)}
+    else if(B.tmpl===2){solar(x+5,y+5,Math.floor((w-10)/5.4),2);tank(x+w-9,y+h-9,3.6)}
+    else{hvac(x+5,y+h-12);hvac(x+w-16,y+6)}
+  }
+}
+let drawnKey=null,baseURL='';
+function drawBase(seed,sizes){
+  const key=seed+':'+sizes.join('');if(key===drawnKey)return;drawnKey=key;
+  LAYOUT=genLayout(seed,sizes);
+  const cv=document.getElementById('base');const W=cv.width;const ctx=cv.getContext('2d');
+  const K=W/524;ctx.setTransform(K,0,0,K,12*K,12*K);
+  const R=mulberry32(seed*31+7);
+  // asphalt
+  ctx.fillStyle='#3d4045';ctx.fillRect(-12,-12,524,524);
+  for(let k=0;k<900;k++){ctx.fillStyle=`rgba(${R()<.5?'0,0,0':'255,255,255'},${.03+R()*.04})`;
+    ctx.beginPath();ctx.ellipse(-12+R()*524,-12+R()*524,1+R()*6,1+R()*3,R()*3,0,6.29);ctx.fill()}
+  // tyre wear along lanes
+  ctx.strokeStyle='rgba(0,0,0,.10)';ctx.lineWidth=2.4;
+  for(let c=0;c<=5;c++)for(const o of [-6.5,6.5]){ctx.beginPath();ctx.moveTo(c*100+o,-12);ctx.lineTo(c*100+o,512);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-12,c*100+o);ctx.lineTo(512,c*100+o);ctx.stroke()}
+  // center dashed lines
+  ctx.strokeStyle='rgba(238,236,228,.8)';ctx.lineWidth=.9;ctx.setLineDash([6,5]);
+  for(let c=0;c<=5;c++)for(let n=-1;n<=5;n++){
+    const a=n*100+23,bq=(n+1)*100-23;if(bq<-12||a>512)continue;
+    ctx.beginPath();ctx.moveTo(c*100,Math.max(a,-12));ctx.lineTo(c*100,Math.min(bq,512));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(Math.max(a,-12),c*100);ctx.lineTo(Math.min(bq,512),c*100);ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // crosswalks + stop lines
+  ctx.fillStyle='rgba(240,238,230,.86)';
+  for(let r=0;r<=5;r++)for(let c=0;c<=5;c++){
+    const X=c*100,Y=r*100;
+    if(Y-22>=-12){for(let sx=X-10.5;sx<X+11;sx+=3.1)ctx.fillRect(sx,Y-21,1.7,7);ctx.fillRect(X-11.5,Y-24,11,1)}
+    if(Y+22<=512){for(let sx=X-10.5;sx<X+11;sx+=3.1)ctx.fillRect(sx,Y+14,1.7,7);ctx.fillRect(X+.5,Y+23,11,1)}
+    if(X-22>=-12){for(let sy=Y-10.5;sy<Y+11;sy+=3.1)ctx.fillRect(X-21,sy,7,1.7);ctx.fillRect(X-24,Y+.5,1,11)}
+    if(X+22<=512){for(let sy=Y-10.5;sy<Y+11;sy+=3.1)ctx.fillRect(X+14,sy,7,1.7);ctx.fillRect(X+23,Y-11.5,1,11)}
+  }
+  // manholes
+  for(let k=0;k<14;k++){const c=Math.floor(R()*6),n=Math.floor(R()*5);const v=R()<.5;const p=n*100+35+R()*30;const o=(R()<.5?-1:1)*6;
+    const mx=v?c*100+o:p,my=v?p:c*100+o;ctx.fillStyle='#2e3034';ctx.beginPath();ctx.arc(mx,my,1.9,0,6.29);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=.3;ctx.stroke()}
+  // road traffic
+  for(let c=0;c<=5;c++)for(let n=0;n<5;n++)for(const lane of [-1,1])for(const vert of [true,false]){
+    if(R()>.32)continue;const p=n*100+32+R()*36;const o=lane*6.2;
+    const cx=vert?c*100+o:p,cy=vert?p:c*100+o;if(cx<-8||cx>508||cy<-8||cy>508)continue;
+    const ang=vert?(lane<0?Math.PI:0):(lane<0?Math.PI/2:-Math.PI/2);
+    drawCarSmall(ctx,cx,cy,ang,CARCOL[Math.floor(R()*CARCOL.length)]);
+  }
+  // sidewalks & lots
+  for(const B of LAYOUT){
+    const sx=B.lx-6,sy=B.ly-6;
+    ctx.fillStyle='rgba(0,0,0,.25)';rr(ctx,sx+.6,sy+.6,76,76,5);ctx.fill();
+    ctx.fillStyle='#b9b5ab';rr(ctx,sx,sy,76,76,5);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=.7;rr(ctx,sx+.4,sy+.4,75.2,75.2,4.6);ctx.stroke();
+    ctx.strokeStyle='rgba(0,0,0,.07)';ctx.lineWidth=.3;
+    for(let t=sx+3;t<sx+76;t+=3){ctx.beginPath();ctx.moveTo(t,sy);ctx.lineTo(t,sy+6);ctx.moveTo(t,sy+70);ctx.lineTo(t,sy+76);ctx.moveTo(sx,t);ctx.lineTo(sx+6,t);ctx.moveTo(sx+70,t);ctx.lineTo(sx+76,t);ctx.stroke()}
+    const {lx,ly}=B;
+    if(B.lot==='plaza'){ctx.fillStyle='#cbc5b7';ctx.fillRect(lx,ly,64,64);ctx.strokeStyle='rgba(90,80,60,.10)';ctx.lineWidth=.3;
+      for(let t=4;t<64;t+=4){ctx.beginPath();ctx.moveTo(lx+t,ly);ctx.lineTo(lx+t,ly+64);ctx.moveTo(lx,ly+t);ctx.lineTo(lx+64,ly+t);ctx.stroke()}}
+    else if(B.lot==='grass'){ctx.fillStyle='#6a8f47';ctx.fillRect(lx,ly,64,64);
+      for(let k=0;k<160;k++){ctx.fillStyle=R()<.5?'rgba(40,70,25,.25)':'rgba(170,200,120,.2)';ctx.fillRect(lx+R()*63,ly+R()*63,.8+R(),.8+R())}}
+    else{ctx.fillStyle='#4a4d52';ctx.fillRect(lx,ly,64,64);ctx.strokeStyle='rgba(235,235,230,.75)';ctx.lineWidth=.5;
+      const top=B.y-ly>B.ly+64-(B.y+B.h);
+      const py=top?ly+1:ly+64-12;
+      for(let t=0;t<=8;t++){ctx.beginPath();ctx.moveTo(lx+3+t*7.2,py);ctx.lineTo(lx+3+t*7.2,py+11);ctx.stroke()}
+      for(let t=0;t<8;t++)if(R()<.55)drawCarSmall(ctx,lx+6.6+t*7.2,py+5.5,R()<.5?0:Math.PI,CARCOL[Math.floor(R()*CARCOL.length)])}
+  }
+  // street trees
+  for(const B of LAYOUT){const sx=B.lx-3,sy=B.ly-3;
+    const spots=[[sx+22,sy],[sx+48,sy],[sx+22,sy+70],[sx+48,sy+70],[sx,sy+22],[sx,sy+48],[sx+70,sy+22],[sx+70,sy+48]];
+    for(const [tx,ty] of spots)if(R()<.5)drawTree(ctx,tx,ty,4.2+R()*1.8,R);
+    if(B.lot==='grass')for(let k=0;k<4;k++){const tx=B.lx+5+R()*54,ty=B.ly+5+R()*54;
+      if(tx>B.x-4&&tx<B.x+B.w+4&&ty>B.y-4&&ty<B.y+B.h+4)continue;drawTree(ctx,tx,ty,3.5+R()*2,R)}
+  }
+  // building shadows then roofs
+  for(const B of LAYOUT){boxShadow(ctx,B.x,B.y,B.w,B.h,B.hgt,.42);boxShadow(ctx,B.x,B.y,B.w,B.h,B.hgt*.55,.12)}
+  for(const B of LAYOUT){
+    const {x,y,w,h}=B;
+    const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,shade(B.roof,.08));g.addColorStop(1,shade(B.roof,-.08));
+    ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+    for(let k=0;k<w*h/5;k++){ctx.fillStyle=R()<.5?'rgba(0,0,0,.07)':'rgba(255,255,255,.07)';ctx.fillRect(x+R()*w,y+R()*h,.7,.7)}
+    // roof drain lines
+    ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(x+3,y+3);ctx.lineTo(x+w-3,y+h-3);ctx.moveTo(x+w-3,y+3);ctx.lineTo(x+3,y+h-3);ctx.stroke();
+    // parapet
+    ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(x+2,y+2,w-4,2.2);ctx.fillRect(x+2,y+2,2.2,h-4);
+    ctx.strokeStyle=shade(B.roof,.32);ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,w-2,h-2);
+    ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=.5;ctx.strokeRect(x+.25,y+.25,w-.5,h-.5);
+    roofItems(ctx,B,R);
+  }
+  // film grain
+  ctx.setTransform(1,0,0,1,0,0);
+  const img=ctx.getImageData(0,0,W,W);const d=img.data;
+  for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*14;d[i]+=n;d[i+1]+=n;d[i+2]+=n}
+  ctx.putImageData(img,0,0);
+  // grade + vignette
+  ctx.fillStyle='rgba(255,214,160,.05)';ctx.fillRect(0,0,W,W);
+  const vg=ctx.createRadialGradient(W/2,W/2,W*.35,W/2,W/2,W*.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.35)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,W);
+  try{baseURL=cv.toDataURL('image/jpeg',.7)}catch(e){baseURL=''}
+}
+
+/* ---------- state ---------- */
+let S=null;
+let ui={sel:null,pending:null,pick:null,lastSearch:null};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const t=localStorage.getItem(KEY);const s=t?JSON.parse(t):null;if(s&&!s.seed)s.seed=12345;return s}catch(e){return null}}
+function newState(){
+  const sizes=Array(25).fill(0);
+  shuffle([...Array(25).keys()]).slice(0,10).forEach(b=>sizes[b]=1);
+  return {phase:'setup',round:1,sizes,seed:1+Math.floor(Math.random()*1e6),car:null,traces:Array(25).fill(0),revealed:Array(25).fill(false),
+    hist:[],helis:[null,null,null],done:[false,false,false],handoff:'police',winner:null,reason:'',msg:null};
+}
+function resetUI(){ui={sel:null,pending:null,pick:null,lastSearch:null}}
+
+function thiefOptions(){
+  if(S.round===1||S.car===null) return [...Array(25).keys()].filter(b=>!S.traces[b]);
+  return bAdj(S.car).filter(b=>!S.traces[b]);
+}
+function heliMoves(h){const p=S.helis[h];if(p===null)return[];return iAdj(p).filter(i=>!S.helis.includes(i))}
+function heliSearch(h){const p=S.helis[h];if(p===null)return[];return iBuildings(p).filter(b=>!S.revealed[b])}
+function viewMode(){if(S.phase==='over')return'all';if(S.phase==='thief')return'thief';return'police'}
+
+/* ---------- overlay svg ---------- */
+function heliSVG(x,y,k,sel,dim,scale=1){
+  const H=HELI[k],a=HELI_ANG[k];
+  return `<g transform="translate(${x},${y}) scale(${scale})" opacity="${dim?.55:1}">
+    <g transform="translate(9,8) rotate(${a})" opacity=".32" filter="url(#hs)">
+      <path d="M-6.5,-2 C-6.5,-11 6.5,-11 6.5,-2 L6.5,5 C6.5,10 -6.5,10 -6.5,5 Z" fill="#000"/>
+      <rect x="-1.4" y="7" width="2.8" height="18" fill="#000"/><rect x="-5" y="23" width="10" height="2.4" fill="#000"/>
+      <circle r="20" fill="#000" opacity=".25"/>
+    </g>
+    ${sel?`<circle r="24" fill="none" stroke="#fff" stroke-width="2.4"/><circle r="27" fill="none" stroke="#4fc3ff" stroke-width="1.2" opacity=".8"/>`:''}
+    <g class="hover"><g transform="rotate(${a})">
+      <path d="M-1.6,7 L-0.9,25 L0.9,25 L1.6,7 Z" fill="url(#hb${k})"/>
+      <rect x="-5.5" y="22.6" width="11" height="2.4" rx="1.2" fill="${H.dark}"/>
+      <circle cx="2.6" cy="24.4" r="4" fill="#fff" opacity=".12"/>
+      <line x1="-7.8" y1="-7" x2="-7.8" y2="8" stroke="#1e2125" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="7.8" y1="-7" x2="7.8" y2="8" stroke="#1e2125" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="-7.8" y1="-3" x2="-5.5" y2="-3" stroke="#1e2125" stroke-width=".9"/><line x1="7.8" y1="-3" x2="5.5" y2="-3" stroke="#1e2125" stroke-width=".9"/>
+      <line x1="-7.8" y1="5" x2="-5.5" y2="5" stroke="#1e2125" stroke-width=".9"/><line x1="7.8" y1="5" x2="5.5" y2="5" stroke="#1e2125" stroke-width=".9"/>
+      <path d="M-6.5,-2 C-6.5,-11.5 6.5,-11.5 6.5,-2 L6.5,5 C6.5,10.5 -6.5,10.5 -6.5,5 Z" fill="url(#hb${k})" stroke="${H.dark}" stroke-width=".6"/>
+      <path d="M-5.6,-3 C-5.6,-10.2 5.6,-10.2 5.6,-3 L4.8,-1.2 L-4.8,-1.2 Z" fill="url(#glass)"/>
+      <path d="M-3.8,-7.6 C-2,-9.4 1,-9.6 2.6,-8.6" stroke="#fff" stroke-width=".9" fill="none" opacity=".7" stroke-linecap="round"/>
+      <rect x="-6.5" y="2.2" width="13" height="1.6" fill="#fff" opacity=".85"/>
+      <rect x="-2.6" y="-.4" width="5.2" height="5.4" rx="1" fill="${H.dark}" opacity=".55"/>
+    </g>
+    <circle r="21" fill="url(#rotor)"/>
+    <g class="spin"><rect x="-21" y="-.75" width="42" height="1.5" rx=".75" fill="#1c1f23" opacity=".55"/><rect x="-.75" y="-21" width="1.5" height="42" rx=".75" fill="#1c1f23" opacity=".55"/></g>
+    <circle r="2" fill="#2a2d31" stroke="#9aa0a6" stroke-width=".5"/></g>
+  </g>`;
+}
+function carSVG(x,y,op=1,ang=0){
+  return `<g transform="translate(${x},${y}) rotate(${ang})" opacity="${op}">
+    <rect x="-5.2" y="-10.4" width="10.4" height="20.8" rx="3" fill="#000" opacity=".4" transform="translate(2.2,1.8)" filter="url(#hs)"/>
+    <rect x="-5.6" y="-6" width="11.2" height="2" rx="1" fill="#1a1c20"/>
+    <rect x="-5.6" y="4" width="11.2" height="2" rx="1" fill="#1a1c20"/>
+    <rect x="-5" y="-10.6" width="10" height="21.2" rx="3.2" fill="url(#carb)" stroke="#5a0f1b" stroke-width=".4"/>
+    <path d="M-4.1,-4.6 Q0,-6.4 4.1,-4.6 L3.6,-1.6 L-3.6,-1.6 Z" fill="url(#glass)"/>
+    <rect x="-3.6" y="-1.6" width="7.2" height="5.6" rx="1" fill="#c62037"/>
+    <path d="M-3.6,4 L3.6,4 L3.9,6.4 Q0,7.6 -3.9,6.4 Z" fill="url(#glass)"/>
+    <rect x="-6.3" y="-3.2" width="1.4" height="1" rx=".4" fill="#1a1c20"/><rect x="4.9" y="-3.2" width="1.4" height="1" rx=".4" fill="#1a1c20"/>
+    <rect x="-4.2" y="-10.4" width="2.2" height="1.1" rx=".5" fill="#fff6d0"/><rect x="2" y="-10.4" width="2.2" height="1.1" rx=".5" fill="#fff6d0"/>
+    <rect x="-4.2" y="9.4" width="2" height="1" rx=".5" fill="#ff3b3b"/><rect x="2.2" y="9.4" width="2" height="1" rx=".5" fill="#ff3b3b"/>
+    <path d="M-3.2,-9 Q0,-9.8 3.2,-9" stroke="#fff" stroke-width=".5" fill="none" opacity=".5"/>
+  </g>`;
+}
+function markerSVG(x,y,tr,num,found){
+  const c=traceColor(tr);const tc=tr===1?'#3a2b00':'#fff';
+  return `<g transform="translate(${x},${y})">
+    <path d="M-7,-5 L7,-5 L9.5,8 L-4.5,8 Z" fill="#000" opacity=".35" transform="translate(2,2)"/>
+    <path d="M-7,-6 L7,-6 L7,6 L-7,6 Z" fill="${c}"/>
+    <path d="M-7,-6 L7,-6 L7,0 L-7,0 Z" fill="#fff" opacity=".22"/>
+    <line x1="-7" y1="0" x2="7" y2="0" stroke="#000" stroke-opacity=".25" stroke-width=".6"/>
+    <rect x="-7" y="-6" width="14" height="12" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".7"/>
+    ${num?`<text y="3.8" text-anchor="middle" font-size="10" font-weight="800" fill="${tc}" font-family="-apple-system,sans-serif">${tr}</text>`:''}
+    ${found?`<rect x="-10" y="-9" width="20" height="18" rx="3" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2.5 2"/>`:''}
+  </g>`;
+}
+function renderBoard(){
+  drawBase(S.seed,S.sizes);
+  const svg=document.getElementById('board');
+  const v=viewMode();
+  let h=`<defs>
+    <filter id="hs" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+    <radialGradient id="rotor"><stop offset="0" stop-color="#fff" stop-opacity=".06"/><stop offset=".85" stop-color="#e6ebf0" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="spot"><stop offset="0" stop-color="#fffbe8" stop-opacity=".30"/><stop offset=".7" stop-color="#fffbe8" stop-opacity=".10"/><stop offset="1" stop-color="#fffbe8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5d7a91"/><stop offset=".5" stop-color="#1d2a36"/><stop offset="1" stop-color="#0d141b"/></linearGradient>
+    <linearGradient id="carb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6273"/><stop offset=".45" stop-color="#e3263d"/><stop offset="1" stop-color="#9c1124"/></linearGradient>
+    ${HELI.map((H,k)=>`<linearGradient id="hb${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${shade(H.color,.35)}"/><stop offset=".5" stop-color="${H.color}"/><stop offset="1" stop-color="${H.dark}"/></linearGradient>`).join('')}
+  </defs>`;
+  if(S.phase==='over') h+=`<rect x="-12" y="-12" width="524" height="524" fill="#000" opacity=".25"/>`;
+  let bTargets=[],iTargets=[];
+  if(S.phase==='thief') bTargets=thiefOptions();
+  if(S.phase==='police'&&ui.sel!==null){bTargets=heliSearch(ui.sel);iTargets=heliMoves(ui.sel)}
+  if(S.phase==='setup') iTargets=[...Array(16).keys()].filter(i=>!S.helis.includes(i));
+  // spotlight of selected heli
+  if(S.phase==='police'&&ui.sel!==null&&S.helis[ui.sel]!==null){const [x,y]=iCenter(S.helis[ui.sel]);
+    h+=`<circle cx="${x}" cy="${y}" r="78" fill="url(#spot)"/>`}
+  // building highlights
+  for(let b=0;b<25;b++){
+    const B=LAYOUT[b];
+    const picked=(ui.pick===b)||(ui.pending&&ui.pending.t==='search'&&ui.pending.b===b);
+    if(bTargets.includes(b)&&!picked) h+=`<rect x="${B.x-3}" y="${B.y-3}" width="${B.w+6}" height="${B.h+6}" rx="3" fill="#4fc3ff" fill-opacity=".14" stroke="#4fc3ff" stroke-width="2.2" class="pulse"/>`;
+    if(picked) h+=`<rect x="${B.x-3}" y="${B.y-3}" width="${B.w+6}" height="${B.h+6}" rx="3" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-width="3"/>`;
+  }
+  // markers
+  const showAll=(v==='thief'||v==='all');
+  for(let b=0;b<25;b++){
+    const tr=S.traces[b];if(!tr||!(showAll||S.revealed[b]))continue;
+    const B=LAYOUT[b];const carHere=showAll&&S.car===b;
+    const mx=carHere?B.x+11:B.x+B.w/2,my=carHere?B.y+10:B.y+B.h/2;
+    h+=markerSVG(mx,my,tr,showAll,S.revealed[b]&&showAll);
+  }
+  // route
+  if(v==='all'&&S.hist.length>1){
+    const pts=S.hist.map(b=>{const B=LAYOUT[b];return `${B.x+B.w/2},${B.y+B.h/2}`}).join(' ');
+    h+=`<polyline points="${pts}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+    h+=`<polyline points="${pts}" fill="none" stroke="#ffcf3f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 7"/>`;
+    for(let b=0;b<25;b++){const tr=S.traces[b];if(!tr)continue;const B=LAYOUT[b];h+=markerSVG(B.x+B.w/2,B.y+B.h/2,tr,true,S.revealed[b])}
+  }
+  // car
+  if(showAll&&S.car!==null){const B=LAYOUT[S.car];h+=carSVG(B.x+B.w/2+(v==='thief'?5:11),B.y+B.h/2+(v==='thief'?4:9),1,(S.car*37)%360)}
+  if(v==='thief'&&ui.pick!==null){const B=LAYOUT[ui.pick];h+=carSVG(B.x+B.w/2,B.y+B.h/2,.6,0)}
+  // search ping
+  if(ui.lastSearch!==null){const B=LAYOUT[ui.lastSearch];h+=`<ellipse cx="${B.x+B.w/2}" cy="${B.y+B.h/2}" rx="${B.w*.8}" ry="${B.h*.8}" fill="url(#spot)" class="ping"/>`}
+  // move targets
+  for(const i of iTargets){const [x,y]=iCenter(i);
+    h+=`<circle cx="${x}" cy="${y}" r="11" fill="#4fc3ff" fill-opacity=".18" stroke="#4fc3ff" stroke-width="2" stroke-dasharray="4 3" class="pulse"/><circle cx="${x}" cy="${y}" r="2.2" fill="#4fc3ff"/>`}
+  if(ui.pending&&ui.pending.t==='move'){const [x,y]=iCenter(ui.pending.i);
+    h+=`<circle cx="${x}" cy="${y}" r="12" fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="2.6"/>`;
+    const [fx,fy]=iCenter(S.helis[ui.sel]);h+=`<line x1="${fx}" y1="${fy}" x2="${x}" y2="${y}" stroke="#fff" stroke-width="2" stroke-dasharray="3 3" opacity=".8"/>`}
+  // helis
+  S.helis.forEach((p,k)=>{if(p===null)return;const [x,y]=iCenter(p);
+    h+=heliSVG(x,y,k,ui.sel===k,S.phase==='police'&&S.done[k])});
+  // hit areas
+  for(let b=0;b<25;b++){const [cx,cy]=bCenter(b);h+=`<rect data-b="${b}" x="${cx-38}" y="${cy-38}" width="76" height="76" fill="transparent"/>`}
+  const iHits=new Set(iTargets);
+  if(S.phase==='police'||S.phase==='setup') S.helis.forEach(p=>{if(p!==null)iHits.add(p)});
+  for(const i of iHits){const [x,y]=iCenter(i);h+=`<circle data-i="${i}" cx="${x}" cy="${y}" r="17" fill="transparent"/>`}
+  svg.innerHTML=h;
+}
+function miniHeli(k){return `<svg viewBox="-24 -24 48 48">${heliDefsMini(k)}${heliSVG(0,0,k,false,false,.95).replace('class="spin"','')}</svg>`}
+function heliDefsMini(k){const H=HELI[k];return `<defs><filter id="hs" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+  <radialGradient id="rotor"><stop offset="0" stop-color="#fff" stop-opacity=".06"/><stop offset=".85" stop-color="#e6ebf0" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5d7a91"/><stop offset=".5" stop-color="#1d2a36"/><stop offset="1" stop-color="#0d141b"/></linearGradient>
+  <linearGradient id="hb${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${shade(H.color,.35)}"/><stop offset=".5" stop-color="${H.color}"/><stop offset="1" stop-color="${H.dark}"/></linearGradient></defs>`}
+
+/* ---------- panel render ---------- */
+function track(){
+  let h='<div class="track">';
+  for(let n=1;n<=ROUNDS;n++){
+    const used=n<=S.hist.length;const c=traceColor(n);
+    const cur=(n===S.round&&S.phase!=='over')?' cur':'';
+    h+=`<div class="slot${used?' used':' full'}${n===1?' y':''}${cur}" style="--c:${c}">${n}</div>`;
+  }
+  return h+'</div>';
+}
+function topBar(){
+  return `<div class="top"><div class="lights"><i></i><i></i></div><div class="title">ビルかげチェイス</div>
+    <div class="round">ROUND<b>${Math.min(S.round,ROUNDS)}</b>/ ${ROUNDS}</div>
+    <button class="iconbtn" data-act="rules">ルール</button><button class="iconbtn" data-act="menu">メニュー</button></div>`+track();
+}
+function dirOfBuilding(i,b){const k=iBuildings(i).indexOf(b);return ['左上','右上','左下','右下'][k]}
+function dirOfMove(a,b){const d=b-a;return d===-4?'上':d===4?'下':d===-1?'左':'右'}
+function renderPanel(){
+  const p=document.getElementById('panel');
+  let h=topBar();
+  if(S.phase==='setup'){
+    const n=S.helis.filter(x=>x!==null).length;
+    h+=`<div class="card"><div class="phase"><span class="badge b-police">警察</span>ヘリを配置</div>
+      <div class="hint">光っている交差点をタップして、ピンク→イエロー→グリーンの順にヘリを置きます。置いたヘリをタップすると外せます。</div></div>`;
+    h+='<div class="scroll">';
+    HELI.forEach((hl,k)=>{h+=`<div class="heli">${miniHeli(k)}${hl.name}<div class="st">${S.helis[k]===null?'未配置':'配置済み'}</div></div>`});
+    h+='</div>';
+    h+=`<div class="actions"><button class="btn" data-act="setupDone" ${n<3?'disabled':''}>配置完了 → 泥棒へ</button></div>`;
+  }
+  else if(S.phase==='thief'){
+    const r=S.round;
+    h+=`<div class="card"><div class="phase"><span class="badge b-thief">泥棒</span>${r===1?'スタート地点を選ぶ':'次のビルへ逃げる'}</div>
+      <div class="hint">${r===1?'好きなビルを1つ選んで隠れます。':'今いるビルの上下左右のビルに移動します。斜めと、痕跡のあるビルには入れません。'}</div></div>`;
+    h+=`<div class="scroll"><div class="toast" style="border-left-color:${traceColor(r)}">今回残す痕跡：<b style="color:${traceColor(r)}">${traceName(r)}</b>（${r}番目）${r===1?'<br>黄色はスタート地点の印です':r===6?'<br>赤は中間地点の印です':''}</div>
+      <div class="hint">マーカーの数字は痕跡の順番です（警察には色だけ見えます）。点線の枠は警察に見つかった痕跡です。</div></div>`;
+    h+=`<div class="actions"><button class="btn red" data-act="hide" ${ui.pick===null?'disabled':''}>ここに隠れる</button></div>`;
+  }
+  else if(S.phase==='police'){
+    h+=`<div class="card"><div class="phase"><span class="badge b-police">警察</span>捜査</div>
+      <div class="hint">${ui.sel===null?'ヘリを選んでください。3機すべてが「移動」か「捜索」を1回ずつ行います。':'光る交差点 → 移動 ／ 光るビル → 捜索'}</div></div>`;
+    h+='<div class="scroll">';
+    HELI.forEach((hl,k)=>{
+      const st=S.done[k]?(S.done[k]==='move'?'移動済み':S.done[k]==='search'?'捜索済み':'待機済み'):(ui.sel===k?'選択中':'未行動');
+      h+=`<div class="heli${ui.sel===k?' sel':''}${S.done[k]?' done':''}" data-heli="${k}">${miniHeli(k)}${hl.name}<div class="st">${st}</div></div>`;
+    });
+    if(S.msg) h+=`<div class="toast ${S.msg.k||''}">${S.msg.t}</div>`;
+    h+='</div>';
+    const allDone=S.done.every(Boolean);
+    if(ui.pending){
+      const pd=ui.pending,hl=HELI[ui.sel];
+      const txt=pd.t==='move'?`${hl.name}：${dirOfMove(S.helis[ui.sel],pd.i)}へ移動`:`${hl.name}：${dirOfBuilding(S.helis[ui.sel],pd.b)}のビルを捜索`;
+      h+=`<div class="toast">${txt}</div><div class="actions"><button class="btn sub" data-act="cancel">取消</button><button class="btn" data-act="confirm">決定</button></div>`;
+    }else if(allDone){
+      h+=`<div class="actions"><button class="btn" data-act="endRound">${S.round>=ROUNDS?'最終ラウンド終了':'ラウンド終了 → 泥棒へ'}</button></div>`;
+    }else if(ui.sel!==null&&heliMoves(ui.sel).length===0&&heliSearch(ui.sel).length===0){
+      h+=`<div class="actions"><button class="btn sub" data-act="wait">行動できないので待機</button></div>`;
+    }
+  }
+  else if(S.phase==='over'){
+    const pw=S.winner==='police';
+    h+=`<div class="card"><div class="phase"><span class="badge ${pw?'b-police':'b-thief'}">${pw?'警察':'泥棒'}</span>${pw?'警察の勝ち！':'泥棒の勝ち！'}</div>
+      <div class="hint">${S.reason}</div></div>`;
+    h+=`<div class="scroll"><div class="hint">盤面に泥棒の逃走ルート（マーカーの数字の順）を表示しています。</div></div>`;
+    h+=`<div class="actions"><button class="btn" data-act="again">もう一度遊ぶ</button></div>`;
+  }
+  p.innerHTML=h;
+}
+
+/* ---------- cover ---------- */
+let demoDrawn=false;
+function coverBg(){return baseURL?`<div class="bgimg" style="background-image:url(${baseURL})"></div>`:''}
+function renderCover(){
+  const c=document.getElementById('cover');
+  if(!S){
+    if(!demoDrawn){const sz=Array(25).fill(0);[1,3,5,7,9,12,15,18,21,23].forEach(b=>sz[b]=1);drawBase(777,sz);demoDrawn=true}
+    const saved=load();
+    c.innerHTML=`${coverBg()}<div class="emb"><i style="background:#e8394f;box-shadow:0 0 14px #e8394f"></i><i style="background:#2f7df6;box-shadow:0 0 14px #2f7df6"></i></div>
+      <h1>ビルかげチェイス</h1><p>ビルに隠れる泥棒と、ヘリで追う警察の2人用ゲーム<br>1台の端末を交代で使って遊びます</p>
+      <div class="covrow">${saved&&saved.phase!=='over'?'<button class="hold n" data-cact="resume"><span>続きから（長押し）</span></button>':''}
+      <button class="hold p" data-cact="new"><span>新しく始める（長押し）</span></button></div>
+      <button class="iconbtn" data-act="rules" style="margin-top:6px">ルールを見る</button>`;
+    c.classList.add('on');return;
+  }
+  if(!S.handoff){c.classList.remove('on');c.innerHTML='';return}
+  drawBase(S.seed,S.sizes);
+  const r=Math.min(S.round,ROUNDS);
+  if(S.handoff==='police'){
+    c.innerHTML=`${coverBg()}<div class="emb"><i style="background:#2f7df6;box-shadow:0 0 14px #2f7df6"></i><i style="background:#2f7df6;box-shadow:0 0 14px #2f7df6"></i></div><h1>警察の番</h1>
+      <p>${S.phase==='setup'?'まずは警察がヘリ3機を配置します。':`ラウンド ${r}：泥棒は隠れ終わりました。`}<br>端末を<b>警察</b>に渡してください。</p>
+      <button class="hold p" data-hold="police"><span>警察です（長押しで開く）</span></button>`;
+  }else{
+    c.innerHTML=`${coverBg()}<div class="emb"><i style="background:#e8394f;box-shadow:0 0 14px #e8394f"></i><i style="background:#e8394f;box-shadow:0 0 14px #e8394f"></i></div><h1>泥棒の番</h1>
+      <p>ラウンド ${r}<br><b>警察は画面を見ないでください。</b>端末を泥棒に渡します。</p>
+      <button class="hold t" data-hold="thief"><span>泥棒です（長押しで開く）</span></button>`;
+  }
+  c.classList.add('on');
+}
+
+function render(){renderCover();if(S){renderBoard();renderPanel()}}
+
+/* ---------- modal ---------- */
+function modal(html,buttons){
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="mbox">${html}<div class="actions">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-m="${i}">${b.t}</button>`).join('')}</div></div>`;
+  m.classList.add('on');
+  m.onclick=e=>{const t=e.target.closest('[data-m]');if(!t)return;const b=buttons[+t.dataset.m];m.classList.remove('on');m.innerHTML='';b.f&&b.f()};
+}
+function ask(msg,ok,okText='はい'){modal(`<p style="font-size:15px;color:var(--ink)">${msg}</p>`,[{t:'いいえ',cls:'sub'},{t:okText,f:ok}])}
+function showRules(){
+  modal(`<h2>ルール</h2>
+  <p><b>目的</b>：警察は11ラウンド以内に泥棒の車を見つければ勝ち。泥棒は11ラウンド逃げ切れば勝ち。</p>
+  <p><b>準備</b>：警察がヘリ3機を交差点に置きます（1か所に1機まで）。</p>
+  <p><b>泥棒のターン</b>（警察は見ない）</p>
+  <ul><li>1ラウンド目は好きなビルに隠れ、黄色の痕跡を残します。</li>
+  <li>2ラウンド目以降は、上下左右に隣接するビルへ移動して痕跡を残します。斜めと、すでに痕跡があるビルには入れません。</li>
+  <li>6ラウンド目の痕跡は赤、それ以外は青です。</li>
+  <li>移動できるビルがない場合は「包囲」され、警察の勝ちです。</li></ul>
+  <p><b>警察のターン</b>：ヘリ3機それぞれが、次のどちらかを1回行います（順番は自由）。</p>
+  <ul><li><b>移動</b>：上下左右に隣の交差点へ。斜めや、他のヘリがいる交差点には行けません。</li>
+  <li><b>捜索</b>：交差点を囲む4つのビルから1つを調べます。痕跡があればそのビルにマーカーが置かれ、車があれば逮捕です。</li></ul>
+  <p>痕跡は色しかわからないので、黄・赤の位置や青の並びから泥棒の居場所を推理しましょう。</p>`,[{t:'閉じる'}]);
+}
+function showMenu(){
+  modal(`<h2>メニュー</h2><p>ゲームは自動で保存されます。アプリを閉じても続きから遊べます。</p>`,
+    [{t:'閉じる',cls:'sub'},{t:'最初からやり直す',cls:'red',f:()=>ask('今のゲームを終了して、最初からやり直しますか？',()=>{startNew()},'やり直す')}]);
+}
+
+/* ---------- actions ---------- */
+function startNew(){S=newState();resetUI();save();render()}
+function endGame(w,reason){S.phase='over';S.winner=w;S.reason=reason;S.handoff=null;resetUI();save();render()}
+
+function onBuilding(b){
+  if(S.phase==='thief'){
+    if(thiefOptions().includes(b)){ui.pick=(ui.pick===b?null:b);render()}
+  }else if(S.phase==='police'&&ui.sel!==null){
+    if(heliSearch(ui.sel).includes(b)){ui.pending={t:'search',b};ui.lastSearch=null;render()}
+  }
+}
+function onInter(i){
+  if(S.phase==='setup'){
+    const k=S.helis.indexOf(i);
+    if(k>=0){S.helis[k]=null}else{const f=S.helis.indexOf(null);if(f<0)return;S.helis[f]=i}
+    save();render();return;
+  }
+  if(S.phase==='police'){
+    const k=S.helis.indexOf(i);
+    if(k>=0){selectHeli(k);return}
+    if(ui.sel!==null&&heliMoves(ui.sel).includes(i)){ui.pending={t:'move',i};ui.lastSearch=null;render()}
+  }
+}
+function selectHeli(k){
+  if(S.done[k]){ui.sel=null;ui.pending=null;render();return}
+  ui.sel=(ui.sel===k?null:k);ui.pending=null;ui.lastSearch=null;render();
+}
+function nextUndone(){const k=S.done.findIndex(d=>!d);return k<0?null:k}
+function confirmAction(){
+  const pd=ui.pending,k=ui.sel;if(!pd||k===null)return;
+  const nm=HELI[k].name;
+  if(pd.t==='move'){
+    const dir=dirOfMove(S.helis[k],pd.i);
+    S.helis[k]=pd.i;S.done[k]='move';S.msg={t:`${nm}が${dir}へ移動しました`};
+    ui.lastSearch=null;
+  }else{
+    S.done[k]='search';ui.lastSearch=pd.b;
+    if(pd.b===S.car){ui.pending=null;ui.sel=null;save();
+      endGame('police',`ラウンド ${S.round}：${nm}のヘリが車を発見！泥棒を逮捕しました。`);
+      ui.lastSearch=pd.b;render();return}
+    if(S.traces[pd.b]){S.revealed[pd.b]=true;const t=S.traces[pd.b];
+      S.msg={t:`${nm}：痕跡を発見！ <b style="color:${traceColor(t)}">${traceName(t)}</b>`,k:'hit'}}
+    else S.msg={t:`${nm}：何も見つかりませんでした`,k:'bad'};
+  }
+  ui.pending=null;ui.sel=nextUndone();save();render();
+}
+function endRound(){
+  const go=()=>{
+    if(S.round>=ROUNDS){endGame('thief','11ラウンド逃げ切りました！');return}
+    S.round++;
+    if(thiefOptions().length===0){endGame('police',`ラウンド ${S.round}：泥棒は移動できるビルがなく、包囲されました。`);return}
+    S.phase='thief';S.msg=null;S.handoff='thief';resetUI();save();render();
+  };
+  ask(S.round>=ROUNDS?'最終ラウンドを終了しますか？':'ラウンドを終了して、泥棒に交代しますか？',go);
+}
+
+/* ---------- events ---------- */
+document.getElementById('board').addEventListener('click',e=>{
+  if(!S||S.handoff)return;
+  const i=e.target.closest('[data-i]');if(i){onInter(+i.dataset.i);return}
+  const b=e.target.closest('[data-b]');if(b){onBuilding(+b.dataset.b)}
+});
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]');
+  if(a){const act=a.dataset.act;
+    if(act==='rules')showRules();
+    else if(act==='menu')showMenu();
+    else if(act==='setupDone')ask('この配置でよいですか？<br>次は泥棒の番です。',()=>{S.phase='thief';S.handoff='thief';resetUI();save();render()});
+    else if(act==='hide'){if(ui.pick===null)return;
+      ask('このビルに隠れますか？',()=>{const b=ui.pick;S.traces[b]=S.round;S.car=b;S.hist.push(b);
+        S.phase='police';S.done=[false,false,false];S.msg=null;S.handoff='police';resetUI();ui.sel=0;save();render()},'隠れる')}
+    else if(act==='cancel'){ui.pending=null;render()}
+    else if(act==='confirm')confirmAction();
+    else if(act==='endRound')endRound();
+    else if(act==='wait'){S.done[ui.sel]='wait';S.msg={t:`${HELI[ui.sel].name}は待機しました`};ui.sel=nextUndone();save();render()}
+    else if(act==='again'){startNew()}
+    return;
+  }
+  const hz=e.target.closest('[data-heli]');
+  if(hz&&S&&S.phase==='police'&&!S.handoff)selectHeli(+hz.dataset.heli);
+});
+// cover buttons (long press)
+(function(){
+  const cov=document.getElementById('cover');let timer=null,el=null;
+  function start(e){
+    const t=e.target.closest('.hold');if(!t)return;e.preventDefault();
+    el=t;t.classList.add('holding');
+    timer=setTimeout(()=>{t.classList.remove('holding');fire(t);el=null},800);
+  }
+  function stop(){if(timer){clearTimeout(timer);timer=null}if(el){el.classList.remove('holding');el=null}}
+  function fire(t){
+    if(t.dataset.cact==='new'){const saved=load();
+      if(saved&&saved.phase!=='over'){ask('保存中のゲームを消して新しく始めますか？',()=>startNew(),'始める')}else startNew();return}
+    if(t.dataset.cact==='resume'){S=load();resetUI();if(S&&S.phase!=='over'&&!S.handoff){S.handoff=S.phase==='thief'?'thief':'police'}
+      if(S&&S.phase==='police')ui.sel=nextUndone();render();return}
+    if(t.dataset.hold){S.handoff=null;resetUI();if(S.phase==='police')ui.sel=nextUndone();save();render()}
+  }
+  cov.addEventListener('pointerdown',start);
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>cov.addEventListener(n,stop));
+  cov.addEventListener('contextmenu',e=>e.preventDefault());
+})();
+// hide thief screen when app goes to background
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&S&&S.phase==='thief'&&!S.handoff){S.handoff='thief';resetUI();save();render()}
+});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+
+/* ---------- boot ---------- */
+render();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
+</script>
+</body>
+</html>

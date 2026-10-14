@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ひとこと演技">
+<meta name="theme-color" content="#2a1a10">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>ひとこと演技</title>
+<style>
+:root{
+  --ink:#2b1d14; --cream:#f5ecda; --cream2:#ebdfc6; --red:#b8322a; --red2:#8f201a; --gold:#d9a441;
+  --panel:rgba(22,13,7,.62); --pline:rgba(255,230,190,.14); --ptext:#f3e7d2; --pmuted:#c2ad8f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;color:var(--ptext);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;font-feature-settings:"palt"}
+body{background:#4a2e1b;background-size:600px 600px}
+.serif{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
+#app{position:fixed;inset:0;display:flex;gap:16px;align-items:stretch;
+  padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+#app::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(90% 90% at 35% 45%,transparent 30%,rgba(0,0,0,.55) 100%)}
+#left{flex:none;width:min(46vw,440px);display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+#right{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1;overflow:hidden}
+
+/* お題カード */
+.card{width:100%;height:100%;border-radius:14px;position:relative;overflow:hidden;
+  background-color:var(--cream);color:var(--ink);transform:rotate(-1.2deg);
+  box-shadow:0 1px 0 #fff8 inset,0 0 0 1px #0002,4px 8px 0 -2px #0003,8px 18px 30px rgba(0,0,0,.55);display:flex;flex-direction:column}
+.card .head{background:linear-gradient(180deg,#c43a30,#9e241d);color:#fff6e6;padding:8px 14px 9px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 2px 0 #0002;position:relative}
+.card .head .lab{font-size:10px;letter-spacing:.2em;opacity:.85;writing-mode:vertical-rl;border-left:1px solid #fff5;padding-left:6px;height:38px;text-align:center}
+.card .head .word{font-size:clamp(24px,7.5vh,36px);font-weight:800;letter-spacing:.06em;text-shadow:0 2px 0 #0003}
+.card .head .no{margin-left:auto;font-size:11px;opacity:.8}
+.card ul{list-style:none;margin:0;padding:6px 12px 8px;flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.card li{display:flex;align-items:center;gap:9px;font-size:clamp(11.5px,3.4vh,14.5px);line-height:1.25;padding:2px 6px;border-radius:7px;border-bottom:1px dashed #2b1d1422}
+.card li:last-child{border-bottom:none}
+.card li.hl{background:#ffd76a;box-shadow:0 0 0 2px #d9a441;border-bottom-color:transparent}
+.card li.dim{opacity:.35}
+.chip{flex:none;width:clamp(20px,6vh,26px);height:clamp(20px,6vh,26px);border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:clamp(11px,3.4vh,14px);
+  color:#fff6e6;background:radial-gradient(circle at 35% 30%,#4a3426,#1f140d);box-shadow:0 1px 2px #0006,inset 0 1px 0 #fff3;font-family:-apple-system,sans-serif}
+.card.back{background:linear-gradient(135deg,#a7291f,#7c1913);align-items:center;justify-content:center;color:#ffe9c9}
+.card.back .pat{position:absolute;inset:10px;border:2px solid #ffd9a055;border-radius:9px;
+  background:repeating-linear-gradient(45deg,#ffffff08 0 8px,transparent 8px 16px)}
+.card.back .logo{position:relative;text-align:center}
+.card.back .logo b{display:block;font-size:42px;letter-spacing:.1em}
+.card.back .logo span{font-size:12px;letter-spacing:.3em;opacity:.8}
+.bubble{display:inline-block;background:#fff6e6;color:var(--red2);border-radius:18px;padding:8px 18px;font-size:30px;font-weight:800;position:relative;margin-bottom:12px;box-shadow:0 4px 0 #0003}
+.bubble::after{content:"";position:absolute;left:22px;bottom:-12px;border:8px solid transparent;border-top:12px solid #fff6e6;border-bottom:none}
+
+/* 右パネル */
+.top{display:flex;align-items:center;gap:8px}
+.top .title{font-weight:800;font-size:15px;letter-spacing:.08em;text-shadow:0 1px 2px #000}
+.top .rd{margin-left:auto;font-size:12px;color:var(--pmuted);white-space:nowrap}
+.top .rd b{color:#fff;font-size:18px;margin:0 2px}
+.ibtn{border:1px solid var(--pline);background:rgba(20,12,6,.55);color:var(--ptext);border-radius:9px;font-size:12px;padding:6px 9px;font-family:inherit}
+.box{background:var(--panel);border:1px solid var(--pline);border-radius:14px;padding:10px 12px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);box-shadow:0 6px 18px #0005}
+.h{font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px}
+.tag{white-space:nowrap;flex:none;font-size:11px;font-weight:800;padding:2px 8px;border-radius:5px;background:#f3e7d2;color:var(--red2);letter-spacing:.05em}
+.hint{font-size:12.5px;color:var(--pmuted);line-height:1.55;margin-top:4px}
+.grow{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.actions{display:flex;gap:8px}
+.btn{flex:1;border:none;border-radius:12px;padding:12px 10px;font-size:15px;font-weight:800;font-family:inherit;color:#fff7ea;
+  background:linear-gradient(180deg,#cf4136,#9c231c);box-shadow:inset 0 1px 0 #fff4,0 3px 0 #5e140f,0 6px 14px #0006}
+.btn:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff4,0 1px 0 #5e140f}
+.btn.gold{background:linear-gradient(180deg,#e7b452,#b98326);color:#2b1d14;box-shadow:inset 0 1px 0 #fff6,0 3px 0 #7a5413,0 6px 14px #0006}
+.btn.sub{background:rgba(255,240,215,.1);border:1px solid var(--pline);box-shadow:none;color:var(--ptext);font-weight:700}
+.btn:disabled{opacity:.35}
+
+.prow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:rgba(255,240,215,.06);font-size:13.5px}
+.prow .n{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:#f3e7d2;color:var(--ink);flex:none}
+.prow .r{margin-left:auto;color:var(--pmuted);font-size:12px}
+.prow.now{background:rgba(217,164,65,.22);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.prow.done{opacity:.5}
+input.name{flex:1;min-width:0;background:#f5ecda;border:none;border-radius:8px;padding:7px 9px;font-size:16px;font-family:inherit;color:var(--ink);-webkit-user-select:text;user-select:text}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:36px;height:32px;border-radius:9px;border:1px solid var(--pline);background:rgba(255,240,215,.1);color:#fff;font-size:18px;font-weight:800}
+.step b{min-width:30px;text-align:center;font-size:18px}
+
+/* 投票 */
+.vrow{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:10px;background:rgba(255,240,215,.06)}
+.vrow .who{width:86px;flex:none;font-size:12.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vrow .who small{display:block;color:var(--pmuted);font-size:10px}
+.vrow .ls{display:flex;gap:4px;flex:1;justify-content:space-between}
+.vb{width:31px;height:31px;border-radius:50%;border:none;font-weight:800;font-size:13px;font-family:-apple-system,sans-serif;
+  background:rgba(255,240,215,.12);color:var(--ptext);box-shadow:inset 0 0 0 1px var(--pline)}
+.vb.on{background:radial-gradient(circle at 35% 30%,#e0574b,#8f201a);color:#fff;box-shadow:0 2px 6px #0007,inset 0 1px 0 #fff4}
+.vb.used{opacity:.32}
+.vb.own{opacity:.15;text-decoration:line-through}
+
+/* 配役・発表 */
+.secret{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;flex:1}
+.bigchip{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;font-size:46px;font-weight:800;color:#fff6e6;
+  background:radial-gradient(circle at 35% 30%,#e0574b,#8f201a);box-shadow:0 6px 16px #0008,inset 0 2px 0 #fff4;font-family:-apple-system,sans-serif}
+.sit{font-size:19px;font-weight:800;line-height:1.4}
+.flip{width:86px;height:86px;perspective:400px}
+.flip .in{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,1.4,.5,1)}
+.flip.open .in{transform:rotateY(180deg)}
+.flip .f,.flip .b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:50%;display:grid;place-items:center;font-size:44px;font-weight:800}
+.flip .f{background:radial-gradient(circle at 35% 30%,#4a3426,#1f140d);color:#d9a441;box-shadow:0 6px 16px #0008}
+.flip .b{transform:rotateY(180deg);background:radial-gradient(circle at 35% 30%,#e0574b,#8f201a);color:#fff;box-shadow:0 6px 16px #0008}
+.guesses{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.gs{display:flex;align-items:center;gap:6px;padding:4px 9px 4px 5px;border-radius:99px;background:rgba(255,240,215,.1);font-size:12.5px}
+.gs .chip{width:22px;height:22px;font-size:11px}
+.gs.ok{background:rgba(217,164,65,.35);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.gs.ng{opacity:.55}
+.pts{font-size:14px;color:var(--gold);font-weight:800}
+
+table.sc{width:100%;border-collapse:collapse;font-size:14px}
+table.sc td{padding:6px 8px;border-bottom:1px solid var(--pline)}
+table.sc td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.sc tr.win td{color:#ffd76a;font-weight:800}
+.plus{color:var(--gold);font-size:12px}
+
+/* overlays */
+.overlay{position:fixed;inset:0;display:none;z-index:20}
+.overlay.on{display:flex}
+#cover{align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;
+  background:radial-gradient(60% 70% at 50% 40%,#5a3a22 0%,#1c110a 75%)}
+#cover h1{margin:0;font-size:30px;letter-spacing:.08em;text-shadow:0 2px 10px #000}
+#cover p{margin:0;color:#e2d2b8;font-size:14px;line-height:1.65}
+#cover .who{font-size:34px;font-weight:800;color:#ffd76a;text-shadow:0 2px 10px #000}
+.hold{position:relative;overflow:hidden;border:none;border-radius:16px;padding:16px 34px;font-size:18px;font-weight:800;font-family:inherit;color:#fff7ea;min-width:270px;margin-top:4px;
+  background:linear-gradient(180deg,#cf4136,#9c231c);box-shadow:inset 0 1px 0 #fff4,0 4px 0 #5e140f,0 10px 24px #000a}
+.hold.g{background:linear-gradient(180deg,#6b4a32,#3e2a1c);box-shadow:inset 0 1px 0 #fff3,0 4px 0 #24170f,0 10px 24px #000a}
+.hold span{position:relative;z-index:1}
+.hold::before{content:"";position:absolute;inset:0;width:0;background:rgba(255,255,255,.3)}
+.hold.holding::before{width:100%;transition:width .8s linear}
+.covrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+#modal{background:rgba(10,6,3,.7);align-items:center;justify-content:center;z-index:30;padding:16px}
+.mbox{background:#2a1a10;border:1px solid var(--pline);border-radius:16px;padding:16px 18px;max-width:580px;width:100%;max-height:100%;overflow:auto;box-shadow:0 20px 50px #000}
+.mbox h2{margin:0 0 8px;font-size:18px}
+.mbox p,.mbox li{font-size:13.5px;line-height:1.65;color:#e2d2b8}
+.mbox ul{padding-left:1.2em;margin:6px 0}
+.mbox .actions{margin-top:12px;flex-wrap:wrap}
+.mbox .pick{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mbox .pick .btn{flex:1 1 40%}
+
+#rotate{position:fixed;inset:0;z-index:50;background:#1c110a;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:24px}
+#rotate .phone{width:46px;height:80px;border:3px solid var(--gold);border-radius:10px;animation:rot 2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (orientation:portrait){#rotate{display:flex}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .35s cubic-bezier(.3,1.5,.5,1)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="left"></div>
+  <div id="right"></div>
+</div>
+<div id="cover" class="overlay"></div>
+<div id="modal" class="overlay"></div>
+<div id="rotate"><div class="phone"></div><div style="font-weight:800;font-size:18px">横向きにしてください</div><div style="color:var(--pmuted);font-size:13px">このゲームは横画面で遊びます</div></div>
+
+<script>
+'use strict';
+const KEY='hitokoto-save-v1';
+const L='ABCDEFGH';
+/* ---------- お題（オリジナル） ---------- */
+const THEMES=[
+ {w:'はぁ',s:['長い会議がやっと終わった','店員の説明がまったく理解できない','推しの写真に見とれる','重い荷物を下ろした瞬間','理不尽なことを言われてキレる','温泉に肩までつかった','告白の返事が待ちきれない','寒い朝、手に息を吹きかける']},
+ {w:'えー',s:['給料日が延期になった','子どもに「抱っこして」とせがまれた','友達の意外な趣味を知った','自分が主役に選ばれた','言いにくいことを話す前','楽しみだった店が閉店していた','くじが当たると思っていなかった','つまらない質問に考えるふり']},
+ {w:'うそ',s:['宝くじの番号が全部合っていた','子どもの言い訳を見抜く','友達の恋バナにテンション最高潮','体重計に乗った','財布がないと気づいた','推しが目の前に現れた','友達の冗談を軽く流す','冷めた目でまったく信じない']},
+ {w:'なんで',s:['自動ドアが開かない','恋人にふられて泣きながら','子どもが純粋に質問する','自分だけ飲み会に呼ばれていない','理不尽に怒られて反論する','テストが満点で自分でも驚く','甘えるように理由を聞く','犯人を追い詰める刑事']},
+ {w:'あっ',s:['大事な書類を家に忘れた','流れ星を見つけた','好きな人とすれ違った','皿を落とした瞬間','すごいことをひらめいた','足の小指をぶつけた','久しぶりの友達を見つけた','言ってはいけないことを言った直後']},
+ {w:'おはよう',s:['寝起きで最悪の気分','元気いっぱいの体育の先生','恋人に甘い声で','大遅刻して職場に入る','赤ちゃんに話しかける','ホラー映画の不気味な人形','朝のニュースキャスター','ケンカ中の家族に気まずく']},
+ {w:'ありがとう',s:['心がこもっていないお礼','感動して泣きながら','優勝インタビュー','忙しい店員が早口で','照れながら好きな人へ','余計なお世話への皮肉','命を救ってくれた人へ','孫にお菓子をもらったおばあちゃん']},
+ {w:'すごい',s:['心の底から感動した','棒読みのお世辞','子どもの絵を褒める先生','絶景を見て息をのむ','自分で自分を褒める','怖いものを見てドン引き','友達の自慢話にうんざり','料理番組で一口食べて']},
+ {w:'ちょっと',s:['店員を呼び止める','怒って相手を止める','くっついてくる恋人に照れる','満員電車で降りたい','くすぐられて','気持ち悪いものを見て拒否','内緒話のために手招き','熱いお風呂に足を入れた']},
+ {w:'もしもし',s:['電波が悪くて聞こえない','寝ているところを電話で起こされた','好きな人から電話がきた','無言電話におびえる','上司からの電話に慌てる','子どもがおもちゃの電話で','怒りのクレーム電話','久しぶりの母からの電話']},
+ {w:'ごめん',s:['本気で深く謝る','軽いノリで謝る','笑いをこらえながら謝る','告白を断るとき','道でぶつかって','泣きながら謝る','逆ギレ気味に謝る','遅刻して走ってきて']},
+ {w:'いいよ',s:['こころよくOKする','しぶしぶ許す','「もう来なくていいよ」と怒る','孫を甘やかすおじいちゃん','プロポーズの返事','めんどくさそうに','負けたけど余裕を見せる','遠慮して断る']},
+ {w:'やった',s:['試験に合格した','声を出せない場所で小さく喜ぶ','子どもがプレゼントをもらった','失敗した人への皮肉','残業が決まって自虐','悪だくみが成功した悪役','宝くじで300円当たった','優勝して雄叫び']},
+ {w:'へぇ',s:['本当に興味深い話を聞いた','まったく興味がない','うさんくさいと疑っている','恋のうわさに食いつく','感心して何度もうなずく','友達の幸せに嫉妬','上から目線で聞く','驚きすぎて声が裏返る']},
+ {w:'おい',s:['友達に軽く呼びかける','本気で怒る','危ないと警告する','ボケにツッコむ','寝ている人を起こす','酔っぱらいがからむ','王様が家来を呼ぶ','落とし物を知らせる']},
+ {w:'まじ',s:['信じられない朗報','絶望した','若者っぽく軽く','真剣に確認する','ドン引きしている','感動して涙ぐむ','怒りがこみあげる','眠くて半分寝ている']},
+ {w:'ただいま',s:['疲れ切って帰宅','元気な小学生','久しぶりの実家','怒られると分かっていてこっそり','誰もいない部屋に寂しく','旅行帰りでハイテンション','長い旅から戻った勇者','夜中に酔って帰宅']},
+ {w:'よろしく',s:['緊張している新入社員','ヤンキーのあいさつ','面倒な仕事を押しつける','選挙カーから','恋人の両親にあいさつ','握手しながら政治家','不安そうにお願いする','自信満々の転校生']},
+ {w:'おいしい',s:['本当においしい','まずいのに気をつかう','大げさな食レポ','空腹の限界で','高級料理に戸惑う','小さい子ども','熱すぎてはふはふ','懐かしい母の味に泣く']},
+ {w:'好き',s:['真剣な告白','子どもがママに','大好物への愛','酔って誰にでも言う','照れ隠しにぶっきらぼう','小声でひとりごと','推しに絶叫','別れ際の最後の言葉']},
+ {w:'だれ？',s:['夜中の物音におびえる','知らない番号から電話','友達の新しい恋人に興味津々','寝ぼけて家族が分からない','怒って犯人を探す','かくれんぼの鬼','昔の写真の自分を見て','推しかと思ったら別人']},
+ {w:'えっと',s:['答えがわからない','告白の前でもじもじ','相手の名前を忘れた','言い訳を考えている','面接で緊張している','道を聞かれて考える','長考する将棋の棋士','あきれて言葉が出ない']},
+ {w:'あーあ',s:['やっちゃった','退屈で仕方ない','他人の失敗を見て','あくび混じり','試合に負けた','雨が降ってきた','子どもがジュースをこぼした','休みが終わってしまう']},
+ {w:'どうぞ',s:['電車で席をゆずる','上品な執事','嫌々ながら渡す','「やれるもんならどうぞ」と挑発','旅館の女将がお出迎え','面接官が入室を促す','早口でとにかく渡す','照れながらプレゼント']},
+ {w:'はい',s:['元気いっぱいの返事','めんどくさそう','授業中に寝ていて慌てて','プロポーズを受けて','怒られて落ち込んで','軍隊の点呼','電話に出る','物を手渡すとき']},
+ {w:'おつかれ',s:['心から労う','自分も疲れ果てている','上司が軽く','皮肉っぽく','恋人にやさしく','体育会系の先輩','嫌々あいさつ','勝負に勝って勝ち誇る']},
+ {w:'ねぇ',s:['甘える','怒っている','内緒話を始める','何度も無視されて','怖い話の始まり','子どもが親を呼ぶ','寝る前にささやく','あきれて']},
+ {w:'ほんと？',s:['期待で目を輝かせる','疑っている','絶望している','恋人の気持ちを確かめる','子どもが聞き返す','褒められて照れる','怒って問い詰める','びっくりして']},
+ {w:'わー',s:['絶景を見た','ジェットコースターで落ちる','プレゼントを開けた','虫を見つけた','スタジアムの大歓声','棒読みで驚いたふり','子どもが走り回る','失敗して慌てる']},
+ {w:'いただきます',s:['ふつうに','空腹の限界','苦手な食べ物を前に','高級料理に緊張','大食い選手','小さい子ども','ひとりでさびしく','戦いに挑むように']},
+ {w:'あれ？',s:['鍵をなくしたと気づく','知り合いに似た人を見かけた','計算が合わない','道に迷った','寝ぼけて目を覚ました','恋人の様子がおかしい','矛盾に気づいた名探偵','子どもが不思議がる']},
+ {w:'もう',s:['恋人に甘えながら怒る','本気でうんざり','時間が過ぎるのが早くて驚く','子どもを叱るお母さん','照れくさくて','泣きそうになって','牛のまね','あきらめて']},
+ {w:'いや',s:['きっぱり断る','イヤイヤ期の子ども','遠慮して断る','照れて否定する','恐怖で後ずさり','「いやいやいや」とツッコむ','考え直して言い直す','気持ち悪がる']},
+ {w:'だめ',s:['子どもにやさしく','厳しく禁止する','甘えた声で','自分にがっかり','誘惑に負けそう','審判の判定','試験に落ちた','犬に「待て」']},
+ {w:'待って',s:['走って追いかける','告白を止める','考える時間がほしい','怖くて置いていかないで','注文を追加したい店員に','映画の名場面','話についていけない','ドッキリに気づいた']},
+ {w:'どうしよう',s:['本気でパニック','うれしい悲鳴','迷子の子ども','告白の直前','料理を焦がした','二択で迷う','遅刻が確定した','わざとらしく困る']},
+ {w:'痛い',s:['本当に痛い','大げさに痛がる','見ていて恥ずかしい失敗に','注射の直前','心が痛む','転んだ子ども','必死に我慢','ひどい筋肉痛']},
+ {w:'寒い',s:['真冬の屋外','冷房が効きすぎ','ダジャレがすべった','お化け屋敷で','風邪のひき始め','雪山で遭難','夏なのに強がって','冷たい態度にぞっとする']},
+ {w:'暑い',s:['真夏の炎天下','サウナで限界','いちゃつく二人を冷やかす','激辛料理を食べた','熱血コーチ','エアコンが壊れた','砂漠をさまよう','満員電車']},
+ {w:'眠い',s:['授業中','徹夜明け','甘えた声で','退屈な話を聞いて','運転中に必死でこらえる','小さい子ども','朝むりやり起こされた','お腹いっぱいで']},
+ {w:'疲れた',s:['仕事帰り','マラソン完走','人間関係に','子育て中','大げさに','買い物につきあわされた','試験が終わった','心の底から']},
+ {w:'最高',s:['ライブで熱狂','温泉で','皮肉たっぷりに','優勝した','料理を食べて','自画自賛','酔っぱらって','静かにかみしめる']},
+ {w:'最悪',s:['雨で予定が中止','皮肉っぽく','寝坊した','失恋した','鳥のフンが落ちてきた','笑いながら','冷静に','絶叫する']},
+ {w:'お願い',s:['必死に頼む','甘える','命令っぽく','神頼み','子どものおねだり','土下座する勢いで','軽いノリで','祈るように']},
+ {w:'さようなら',s:['永遠の別れ','卒業式','怒って立ち去る','軽く','幽霊','悪役の捨てゼリフ','子ども','未練たっぷり']},
+ {w:'頑張って',s:['心から応援','棒読み','自分に言い聞かせる','皮肉っぽく','恋人へ','試合の観客席から','頼れる先輩','子どもへやさしく']},
+ {w:'なるほど',s:['本当に理解した','わかったふり','探偵がひらめく','皮肉っぽく','深く感心する','納得いかない','上司ぶって','眠くて適当に']},
+ {w:'大丈夫',s:['本当に平気','強がり','相手を励ます','心配してたずねる','「大丈夫です」と断る','自分に言い聞かせる','酔っぱらい','泣きながら']},
+ {w:'誰か',s:['助けを求める','退屈すぎて','授業で誰も手を挙げない','真っ暗な部屋で','店で店員を探す','パーティーを盛り上げる','寂しくつぶやく','ひそひそ声で']},
+ {w:'いらっしゃいませ',s:['元気なラーメン屋','高級レストラン','やる気のないバイト','魔王の城へようこそ','早口','子どものお店ごっこ','深夜のコンビニ','歌うように']},
+ {w:'かわいい',s:['子犬を見た','赤ちゃんに','恋人に照れながら','皮肉っぽく','ギャル','鏡の自分に','不気味な人形に','孫を見たおじいちゃん']},
+ {w:'嫌い',s:['本気で','照れ隠し','野菜を前にした子ども','冗談っぽく','失恋した直後','ツンデレ','冷たく突き放す','泣きながら']},
+ {w:'うるさい',s:['本気で怒る','照れ隠し','寝起きで','図書館で小声で','反抗期','工事の音に','冗談っぽく','疲れ切って']},
+ {w:'見て',s:['自慢する','すごい発見','恐怖で指さす','子どもが親に','恋人に夕日を','怒って証拠を突きつける','こっそり','実況アナウンサー']},
+ {w:'聞いて',s:['うれしい報告','愚痴が止まらない','秘密を打ち明ける','先生が注意を集める','恋人に甘える','怒って','怖い話の前置き','何度も無視されて']},
+ {w:'いくよ',s:['試合前の気合','子どもを急かす','告白する前','ジェットコースターの頂上','綱引きの掛け声','写真撮影','面倒くさそうに','ラスボスに挑む']},
+ {w:'よし',s:['気合を入れる','小さな成功','犬を褒める','覚悟を決める','上司が許可する','自分を励ます','悪だくみ','指差し確認']},
+ {w:'うまい',s:['ラーメンをすすって','皮肉っぽく','上手な演奏に','料理人の自画自賛','子ども','酔っぱらい','静かにうなる','泣きながら']},
+ {w:'まだ？',s:['待ちくたびれた子ども','料理を待つ','イライラして','恋人の支度を待つ','期待でわくわく','あきれて','静かに催促','ゲームの順番待ち']},
+ {w:'おかえり',s:['やさしいお母さん','大喜びする犬のように','遅い帰宅に怒って','久しぶりの再会','皮肉っぽく','照れながら','お店の常連に','ささやくように']},
+ {w:'ばいばい',s:['小さい子ども','軽く','寂しそうに','怒って','恋人に甘く','赤ちゃんに','ギャル','もう二度と会わない']},
+ {w:'ふーん',s:['まったく興味なし','嫉妬している','疑っている','感心していないふり','見下している','すねている','考え中','納得した']},
+ {w:'ほら',s:['「言った通りでしょ」','見せびらかす','急かす','子どもにやさしく','驚かせる','物を手渡す','怒って','励ます']},
+ {w:'あはは',s:['大爆笑','愛想笑い','不気味に','照れ笑い','苦笑い','悪役の高笑い','子ども','泣き笑い']},
+ {w:'きゃー',s:['恐怖','推しに会えた','虫を見つけた','うれしい知らせ','ジェットコースター','わざとらしく','水をかけられた','お化け屋敷']},
+ {w:'えらい',s:['子どもを褒める','皮肉っぽく','自分を褒める','心から感心','先生が生徒に','上司が雑に','おばあちゃん','驚いて']},
+ {w:'ずるい',s:['子どもがすねる','本気で怒る','恋人に甘えて','うらやましくて','冗談っぽく','審判に抗議','泣きそうに','「その手があったか」と感心']},
+ {w:'知らない',s:['本当に知らない','とぼける','すねる','怒って','冷たく','子ども','怖がって','興味がない']},
+ {w:'わかった',s:['完全に理解した','しぶしぶ','ひらめいた','怒って','やさしく','軽いノリで','謎が解けた探偵','反省して']},
+ {w:'静かに',s:['図書館で','怒鳴る','赤ちゃんが寝ている','かくれんぼ中','先生','怖い話の最中','ささやく','自分の心に']},
+ {w:'助けて',s:['本気の危機','宿題が終わらない','冗談っぽく','おぼれている','虫が出た','甘えて','疲れ果てて','子ども']},
+ {w:'何これ',s:['感動した','気持ち悪い','謎の物体','怒っている','子どもの好奇心','おいしくて驚く','あきれている','びっくり']},
+ {w:'どこ？',s:['迷子','探し物が見つからない','怒って','かくれんぼの鬼','寝ぼけて','恐怖で','子ども','人混みで推しを探す']},
+ {w:'行ってきます',s:['元気な子ども','憂鬱な出勤','戦いへ向かう','恋人に甘く','こっそり','旅行でうきうき','宇宙飛行士','寝坊して大慌て']},
+ {w:'乾杯',s:['盛大に','しっとりと','嫌々','優勝祝い','ひとりで','皮肉っぽく','結婚式のスピーチ','もう酔っている']},
+ {w:'合格',s:['自分が受かった','わが子が受かった','審査員が告げる','皮肉っぽく','涙ながらに','信じられない','叫ぶ','静かに']},
+ {w:'当たり',s:['くじが当たった','クイズの正解','嫌な予感が的中','子ども','絶叫','静かに','皮肉っぽく','驚いて']},
+ {w:'おめでとう',s:['心から','棒読み','嫉妬しながら','泣きながら','子ども','サプライズで','皮肉っぽく','照れながら']},
+ {w:'やめて',s:['本気で拒否','照れて','くすぐられて','怖くて','子ども','甘えて','怒鳴る','泣いて懇願']},
+ {w:'いつ？',s:['楽しみで待ちきれない','怒って問い詰める','恋人に','子ども','疑っている','慌てて','あきれて','興味なさそうに']},
+];
+
+/* ---------- textures ---------- */
+function makeWood(){
+  const c=document.createElement('canvas');c.width=c.height=600;const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,600,600);g.addColorStop(0,'#5b3820');g.addColorStop(.5,'#4a2c18');g.addColorStop(1,'#56351e');
+  x.fillStyle=g;x.fillRect(0,0,600,600);
+  for(let i=0;i<260;i++){
+    const y=Math.random()*600,a=Math.random()*.10+.02,amp=2+Math.random()*6,fr=.004+Math.random()*.01,ph=Math.random()*6;
+    x.strokeStyle=Math.random()<.7?`rgba(30,15,6,${a})`:`rgba(255,200,140,${a*.6})`;x.lineWidth=.6+Math.random()*2.2;x.beginPath();
+    for(let px=-10;px<=610;px+=10){const yy=y+Math.sin(px*fr+ph)*amp;px<0?x.moveTo(px,yy):x.lineTo(px,yy)}x.stroke();
+  }
+  for(let k=0;k<3;k++){const kx=Math.random()*600,ky=Math.random()*600;for(let r=4;r<34;r+=3){x.strokeStyle='rgba(30,15,6,.10)';x.lineWidth=1;x.beginPath();x.ellipse(kx,ky,r*2.2,r*.7,0,0,6.29);x.stroke()}}
+  // vertical plank seams
+  x.fillStyle='rgba(15,8,3,.45)';for(const sx of [0,300]){x.fillRect(sx,0,2,600)}
+  const d=x.getImageData(0,0,600,600),p=d.data;for(let i=0;i<p.length;i+=4){const n=(Math.random()-.5)*12;p[i]+=n;p[i+1]+=n;p[i+2]+=n}x.putImageData(d,0,0);
+  return c.toDataURL('image/jpeg',.8);
+}
+function makePaper(){
+  const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
+  x.fillStyle='#f5ecda';x.fillRect(0,0,256,256);
+  const d=x.getImageData(0,0,256,256),p=d.data;for(let i=0;i<p.length;i+=4){const n=(Math.random()-.5)*16;p[i]+=n;p[i+1]+=n;p[i+2]+=n*.8}x.putImageData(d,0,0);
+  for(let i=0;i<60;i++){x.strokeStyle=`rgba(120,90,50,${Math.random()*.06})`;x.lineWidth=.5;x.beginPath();const sx=Math.random()*256,sy=Math.random()*256;x.moveTo(sx,sy);x.lineTo(sx+Math.random()*30-15,sy+Math.random()*30-15);x.stroke()}
+  return c.toDataURL('image/png');
+}
+let PAPER='';
+(function(){try{document.body.style.backgroundImage=`url(${makeWood()})`;PAPER=makePaper()}catch(e){}})();
+
+/* ---------- state ---------- */
+let S=null;
+let setup={n:2,names:['','','','','','','',''],rounds:3};
+let ui={draft:{}};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const t=localStorage.getItem(KEY);return t?JSON.parse(t):null}catch(e){return null}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nm=p=>esc(S.names[p]);
+function order(){const n=S.names.length;return [...Array(n).keys()].map(k=>(S.start+k)%n)}
+function isSecretOpen(){return S&&!S.cover&&(S.peek!=null||(S.phase==='deal')||(S.phase==='vote'))}
+
+function newGame(){
+  const names=setup.names.slice(0,setup.n).map((v,i)=>v.trim()||`プレイヤー${i+1}`);
+  S={names,rounds:setup.rounds,round:1,start:0,deck:shuffle([...Array(THEMES.length).keys()]),cur:null,
+     phase:'theme',scores:Array(names.length).fill(0),gain:Array(names.length).fill(0),acts:null,votes:null,
+     dealIdx:0,actIdx:0,voteIdx:0,revealIdx:0,revealed:false,cover:false,peek:null};
+  drawTheme();save();render();
+}
+function drawTheme(){if(!S.deck.length)S.deck=shuffle([...Array(THEMES.length).keys()].filter(i=>i!==S.cur));S.cur=S.deck.pop()}
+
+/* ---------- rendering ---------- */
+function themeCard(hl=-1,dimOthers=false){
+  if(!S||S.cur==null) return `<div class="card back serif"><div class="pat"></div><div class="logo"><div class="bubble">……！？</div><b>ひとこと演技</b><span>ONE WORD · ACTING GAME</span></div></div>`;
+  const t=THEMES[S.cur];
+  return `<div class="card" style="background-image:url(${PAPER})"><div class="head serif"><div class="lab">お題</div><div class="word">「${esc(t.w)}」</div><div class="no">No.${String(S.cur+1).padStart(2,'0')}</div></div>
+   <ul>${t.s.map((s,i)=>`<li class="${i===hl?'hl':(dimOthers&&hl>=0?'dim':'')}"><span class="chip">${L[i]}</span><span>${esc(s)}</span></li>`).join('')}</ul></div>`;
+}
+function topBar(){
+  return `<div class="top"><div class="title serif">ひとこと演技</div><div class="rd">ラウンド<b>${Math.min(S.round,S.rounds)}</b>/ ${S.rounds}</div>
+   <button class="ibtn" data-a="rules">ルール</button><button class="ibtn" data-a="menu">メニュー</button></div>`;
+}
+function renderSetup(){
+  document.getElementById('left').innerHTML=themeCard();
+  let h=`<div class="top"><div class="title serif">ひとこと演技</div><div class="rd"></div><button class="ibtn" data-a="rules">ルール</button></div>`;
+  h+=`<div class="box"><div class="h">ゲームの準備</div>
+    <div class="step" style="margin-top:6px"><span style="font-size:13px;width:70px">人数</span><button data-a="n-">−</button><b>${setup.n}</b><button data-a="n+">＋</button><span class="hint" style="margin:0">2〜8人</span></div>
+    <div class="step" style="margin-top:6px"><span style="font-size:13px;width:70px">ラウンド</span><button data-a="r-">−</button><b>${setup.rounds}</b><button data-a="r+">＋</button><span class="hint" style="margin:0">お題の数</span></div></div>`;
+  h+=`<div class="grow">`;
+  for(let i=0;i<setup.n;i++)h+=`<div class="prow"><span class="n">${i+1}</span><input class="name" data-name="${i}" maxlength="10" placeholder="プレイヤー${i+1}" value="${esc(setup.names[i])}"></div>`;
+  h+=`</div><div class="actions"><button class="btn" data-a="start">ゲーム開始</button></div>`;
+  document.getElementById('right').innerHTML=h;
+}
+function renderGame(){
+  const left=document.getElementById('left'),right=document.getElementById('right');
+  let hl=-1,dim=false;
+  const ord=order();
+  let h=topBar();
+  if(S.peek!=null&&!S.cover){
+    const p=S.peek,li=S.acts[p];hl=li;dim=true;
+    h+=`<div class="box secret"><div style="font-size:13px;color:var(--pmuted)">${nm(p)}さんの役</div><div class="bigchip pop">${L[li]}</div>
+      <div class="sit">${esc(THEMES[S.cur].s[li])}</div></div>
+      <div class="actions"><button class="btn gold" data-a="peekDone">確認した（隠す）</button></div>`;
+  }
+  else if(S.phase==='theme'){
+    h+=`<div class="box"><div class="h"><span class="tag">ラウンド${S.round}</span>今回のお題</div>
+      <div class="hint">左のカードが今回のお題です。全員で8つのシチュエーションを読み上げて確認しましょう。<br>このあと端末を回して、一人ずつこっそり役（A〜H）を確認します。</div></div>
+      <div class="grow">${ord.map((p,k)=>`<div class="prow"><span class="n">${k+1}</span>${nm(p)}<span class="r">${k===0?'最初に演技':''}</span></div>`).join('')}</div>
+      <div class="actions"><button class="btn sub" data-a="reroll">別のお題にする</button><button class="btn" data-a="deal">役を配る</button></div>`;
+  }
+  else if(S.phase==='deal'){
+    const p=ord[S.dealIdx],li=S.acts[p];hl=li;dim=true;
+    h+=`<div class="box secret"><div style="font-size:13px;color:var(--pmuted)">${nm(p)}さんの役</div><div class="bigchip pop">${L[li]}</div>
+      <div class="sit">${esc(THEMES[S.cur].s[li])}</div>
+      <div class="hint">「${esc(THEMES[S.cur].w)}」のひとことだけを、声と表情で演じます（身ぶり手ぶりは禁止）。</div></div>
+      <div class="actions"><button class="btn gold" data-a="dealNext">覚えた（隠して次の人へ）</button></div>`;
+  }
+  else if(S.phase==='act'){
+    const a=ord[S.actIdx];
+    h+=`<div class="box"><div class="h"><span class="tag">演技</span>${S.actIdx<ord.length?`${S.actIdx+1}番目：${nm(a)}さん`:'全員の演技が終わりました'}</div>
+      <div class="hint">${S.actIdx<ord.length?`お題の「${esc(THEMES[S.cur].w)}」だけを、声と表情で演じてください。ほかの人はどれか予想して覚えておきましょう。`:'次は端末を回して、一人ずつこっそり投票します。'}</div></div>
+      <div class="grow">${ord.map((p,k)=>`<div class="prow ${k===S.actIdx?'now':k<S.actIdx?'done':''}"><span class="n">${k+1}</span>${nm(p)}<span class="r">${k<S.actIdx?'演技済み':k===S.actIdx?'演技中':''}</span></div>`).join('')}</div>
+      <div class="actions"><button class="btn sub" data-a="peek">役を再確認</button>${S.actIdx<ord.length?`<button class="btn" data-a="actNext">演技おわり → 次へ</button>`:`<button class="btn" data-a="toVote">投票へ</button>`}</div>`;
+  }
+  else if(S.phase==='vote'){
+    const v=ord[S.voteIdx],own=S.acts[v];const d=ui.draft;
+    const targets=ord.filter(p=>p!==v);
+    const full=targets.every(p=>d[p]!=null);
+    h+=`<div class="box" style="padding:7px 12px"><div class="h" style="font-size:15px"><span class="tag">投票</span>${nm(v)}さんの予想</div>
+      <div class="hint" style="margin-top:2px">${targets.length===1?`相手が演じたのはどれ？（自分の${L[own]}は選べません）`:`それぞれの人が演じたのはどれ？ 同じ文字は1回しか使えません（自分の${L[own]}は使えません）。`}</div></div>
+      <div class="grow">${targets.map(p=>{const k=ord.indexOf(p);return `<div class="vrow"><div class="who">${nm(p)}<small>${k+1}番目</small></div><div class="ls">${[...L].map((c,i)=>{
+        const on=d[p]===i,used=!on&&Object.entries(d).some(([q,x])=>+q!==p&&x===i),isOwn=i===own;
+        return `<button class="vb ${on?'on':''} ${used?'used':''} ${isOwn?'own':''}" data-v="${p}:${i}" ${isOwn?'disabled':''}>${c}</button>`}).join('')}</div></div>`}).join('')}</div>
+      <div class="actions"><button class="btn" data-a="voteDone" ${full?'':'disabled'}>投票を確定して次の人へ</button></div>`;
+  }
+  else if(S.phase==='reveal'){
+    if(S.revealIdx>=ord.length){
+      h+=`<div class="box"><div class="h">答え合わせ完了</div></div>`;
+    }else{
+      const a=ord[S.revealIdx],li=S.acts[a];
+      const others=ord.filter(p=>p!==a);
+      const correct=others.filter(p=>S.votes[p][a]===li);
+      if(S.revealed){hl=li;dim=true}
+      h+=`<div class="box" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center">
+        <div class="h" style="justify-content:center"><span class="tag">答え合わせ ${S.revealIdx+1}/${ord.length}</span>${nm(a)}さんの演技は…</div>
+        <div class="flip ${S.revealed?'open':''}"><div class="in"><div class="f">?</div><div class="b">${L[li]}</div></div></div>
+        ${S.revealed?`<div class="sit" style="font-size:16px">${esc(THEMES[S.cur].s[li])}</div>`:''}
+        <div class="guesses">${others.map(p=>{const g=S.votes[p][a];const ok=g===li;return `<div class="gs ${S.revealed?(ok?'ok':'ng'):''}"><span class="chip">${L[g]}</span>${nm(p)}</div>`}).join('')}</div>
+        ${S.revealed?`<div class="pts">${correct.length?`正解 ${correct.length}人 → ${nm(a)}さん +${correct.length}点／当てた人 +1点`:'正解者なし…'}</div>`:''}
+      </div>`;
+      h+=`<div class="actions">${S.revealed?`<button class="btn" data-a="revNext">${S.revealIdx+1<ord.length?'次の人へ':'ラウンド結果へ'}</button>`:`<button class="btn gold" data-a="reveal">正解を発表</button>`}</div>`;
+    }
+  }
+  else if(S.phase==='roundEnd'||S.phase==='final'){
+    const fin=S.phase==='final';
+    const rank=[...S.names.keys()].sort((a,b)=>S.scores[b]-S.scores[a]);
+    const best=S.scores[rank[0]];
+    h+=`<div class="box"><div class="h"><span class="tag">${fin?'最終結果':`ラウンド${S.round}終了`}</span>${fin?`優勝：${rank.filter(p=>S.scores[p]===best).map(nm).join('・')}さん！`:'得点'}</div></div>
+      <div class="grow box" style="padding:4px 10px"><table class="sc">${rank.map((p,k)=>`<tr class="${fin&&S.scores[p]===best?'win':''}"><td style="width:52px;white-space:nowrap">${rank.findIndex(q=>S.scores[q]===S.scores[p])+1}位</td><td>${nm(p)}</td><td class="num">${S.gain[p]?`<span class="plus">+${S.gain[p]}</span> `:''}${S.scores[p]}点</td></tr>`).join('')}</table></div>
+      <div class="actions">${fin?`<button class="btn sub" data-a="home">タイトルへ</button><button class="btn" data-a="again">同じメンバーでもう一度</button>`:`<button class="btn" data-a="nextRound">次のラウンドへ</button>`}</div>`;
+  }
+  left.innerHTML=themeCard(hl,dim);
+  right.innerHTML=h;
+}
+function renderCover(){
+  const c=document.getElementById('cover');
+  if(!S){
+    if(setup.mode==='setup'){c.classList.remove('on');c.innerHTML='';return}
+    const saved=load();
+    c.innerHTML=`<div class="bubble serif">……！？</div><h1 class="serif">ひとこと演技</h1>
+      <p>同じひとことを、声と表情だけで演じ分けて当て合う<br>2〜8人用のパーティーゲーム（1台を回して遊びます）</p>
+      <div class="covrow">${saved&&saved.phase!=='final'?'<button class="hold g" data-c="resume"><span>続きから（長押し）</span></button>':''}<button class="hold" data-c="new"><span>新しく始める（長押し）</span></button></div>
+      <button class="ibtn" data-a="rules" style="margin-top:6px">ルールを見る</button>`;
+    c.classList.add('on');return;
+  }
+  if(!S.cover){c.classList.remove('on');c.innerHTML='';return}
+  const ord=order();
+  let p,msg;
+  if(S.peek!=null){p=S.peek;msg='自分の役をもう一度確認します。<br>ほかの人は画面を見ないでください。'}
+  else if(S.phase==='deal'){p=ord[S.dealIdx];msg=`役の確認（${S.dealIdx+1}/${ord.length}人目）<br>ほかの人は画面を見ないでください。`}
+  else {p=ord[S.voteIdx];msg=`投票（${S.voteIdx+1}/${ord.length}人目）<br>ほかの人は画面を見ないでください。`}
+  c.innerHTML=`<p>端末を渡してください</p><div class="who serif">${nm(p)} さん</div><p>${msg}</p>
+    <button class="hold" data-hold="1"><span>${nm(p)}です（長押しで開く）</span></button>`;
+  c.classList.add('on');
+}
+function render(){renderCover();if(!S){if(setup.mode==='setup')renderSetup();else{document.getElementById('left').innerHTML=themeCard();document.getElementById('right').innerHTML=''}}else renderGame()}
+
+/* ---------- modal ---------- */
+function modal(html,buttons,extra=''){
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="mbox">${html}${extra}<div class="actions">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-m="${i}">${b.t}</button>`).join('')}</div></div>`;
+  m.classList.add('on');
+  m.onclick=e=>{const t=e.target.closest('[data-m]');if(!t)return;const b=buttons[+t.dataset.m];m.classList.remove('on');m.innerHTML='';b.f&&b.f()};
+}
+function ask(msg,ok,okText='はい'){modal(`<p style="font-size:15px;color:#fff">${msg}</p>`,[{t:'いいえ',cls:'sub'},{t:okText,f:ok}])}
+function showRules(){
+  modal(`<h2>ルール</h2>
+  <p><b>ねらい</b>：お題の「ひとこと」を、配られたシチュエーションになりきって演じ、ほかの人に当ててもらいます。</p>
+  <ul>
+  <li><b>お題</b>：1ラウンドに1枚。ひとことと、A〜Hの8つのシチュエーションが書かれています。</li>
+  <li><b>役を配る</b>：端末を回し、一人ずつこっそり自分の役（A〜Hのどれか）を確認します。同じ役の人はいません。</li>
+  <li><b>演技</b>：順番に、お題のひとことだけを<b>声と表情だけ</b>で演じます。身ぶり手ぶりや、ほかの言葉は禁止です。</li>
+  <li><b>投票</b>：全員の演技が終わったら端末を回し、それぞれの人がどれを演じたか予想します。A〜Hは1人1回ずつしか使えず、自分の役の文字も使えません。</li>
+  <li><b>得点</b>：当てた人は1点。演じた人は、当ててくれた人数×1点。</li>
+  <li><b>終了</b>：決めたラウンド数を遊んだら終了。合計点が一番多い人の勝ち（同点なら全員優勝）。演技の順番はラウンドごとにずれます。</li>
+  </ul>`,[{t:'閉じる'}]);
+}
+function showMenu(){
+  modal(`<h2>メニュー</h2><p>ゲームは自動で保存されます。</p>`,[{t:'閉じる',cls:'sub'},{t:'タイトルへ戻る',cls:'sub',f:()=>{S=null;setup.mode=null;render()}},
+    {t:'このゲームをやめる',f:()=>ask('今のゲームを終了しますか？（得点は消えます）',()=>{try{localStorage.removeItem(KEY)}catch(e){};S=null;setup.mode='setup';render()},'やめる')}]);
+}
+function choosePeek(){
+  const ord=order();
+  modal(`<h2>役を再確認する人</h2><p>確認する人を選んでください。</p>`,[{t:'閉じる',cls:'sub'}],
+    `<div class="pick">${ord.map(p=>`<button class="btn sub" data-peekp="${p}">${nm(p)}</button>`).join('')}</div>`);
+}
+
+/* ---------- actions ---------- */
+function act(a){
+  if(a==='rules')return showRules();
+  if(a==='menu')return showMenu();
+  if(!S){
+    if(a==='n-'&&setup.n>2)setup.n--;
+    if(a==='n+'&&setup.n<8)setup.n++;
+    if(a==='r-'&&setup.rounds>1)setup.rounds--;
+    if(a==='r+'&&setup.rounds<10)setup.rounds++;
+    if(a==='start')return newGame();
+    render();return;
+  }
+  const ord=order(),n=ord.length;
+  switch(a){
+    case 'reroll':drawTheme();break;
+    case 'deal':{const ls=shuffle([...Array(8).keys()]);S.acts={};ord.forEach((p,k)=>S.acts[p]=ls[k]);S.phase='deal';S.dealIdx=0;S.cover=true;break}
+    case 'dealNext':S.dealIdx++;if(S.dealIdx<n){S.cover=true}else{S.phase='act';S.actIdx=0;S.cover=false}break;
+    case 'actNext':S.actIdx++;break;
+    case 'toVote':ask('全員の演技が終わりました。投票を始めますか？',()=>{S.phase='vote';S.voteIdx=0;S.votes={};S.cover=true;ui.draft={};save();render()},'投票へ');return;
+    case 'peek':return choosePeek();
+    case 'peekDone':S.peek=null;S.cover=false;break;
+    case 'voteDone':{const v=ord[S.voteIdx];S.votes[v]={...ui.draft};ui.draft={};S.voteIdx++;
+      if(S.voteIdx<n){S.cover=true}else{S.phase='reveal';S.revealIdx=0;S.revealed=false;S.cover=false}break}
+    case 'reveal':{const p=ord[S.revealIdx],li=S.acts[p];const ok=ord.filter(q=>q!==p&&S.votes[q][p]===li);
+      ok.forEach(q=>{S.scores[q]++;S.gain[q]++});S.scores[p]+=ok.length;S.gain[p]+=ok.length;S.revealed=true;break}
+    case 'revNext':S.revealIdx++;S.revealed=false;if(S.revealIdx>=n){S.phase=S.round>=S.rounds?'final':'roundEnd'}break;
+    case 'nextRound':S.round++;S.start=(S.start+1)%n;S.gain=Array(n).fill(0);drawTheme();S.phase='theme';break;
+    case 'again':setup.n=S.names.length;setup.names=[...S.names,...Array(8).fill('')].slice(0,8);setup.rounds=S.rounds;newGame();return;
+    case 'home':try{localStorage.removeItem(KEY)}catch(e){};S=null;setup.mode=null;render();return;
+  }
+  save();render();
+}
+document.addEventListener('click',e=>{
+  const pp=e.target.closest('[data-peekp]');
+  if(pp){document.getElementById('modal').classList.remove('on');S.peek=+pp.dataset.peekp;S.cover=true;save();render();return}
+  const a=e.target.closest('[data-a]');if(a){act(a.dataset.a);return}
+  const vb=e.target.closest('[data-v]');
+  if(vb&&S&&S.phase==='vote'){const [p,i]=vb.dataset.v.split(':').map(Number);const d=ui.draft;
+    if(d[p]===i){delete d[p]}else{for(const q in d)if(d[q]===i)delete d[q];d[p]=i}
+    renderGame();}
+});
+document.addEventListener('input',e=>{const t=e.target.closest('[data-name]');if(t)setup.names[+t.dataset.name]=t.value});
+// long-press cover
+(function(){
+  const cov=document.getElementById('cover');let timer=null,el=null;
+  cov.addEventListener('pointerdown',e=>{const t=e.target.closest('.hold');if(!t)return;e.preventDefault();el=t;t.classList.add('holding');
+    timer=setTimeout(()=>{t.classList.remove('holding');el=null;fire(t)},800)});
+  const stop=()=>{if(timer){clearTimeout(timer);timer=null}if(el){el.classList.remove('holding');el=null}};
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>cov.addEventListener(n,stop));
+  cov.addEventListener('contextmenu',e=>e.preventDefault());
+  function fire(t){
+    if(t.dataset.c==='new'){const sv=load();const go=()=>{try{localStorage.removeItem(KEY)}catch(e){};S=null;setup.mode='setup';render()};
+      if(sv&&sv.phase!=='final')ask('保存中のゲームを消して新しく始めますか？',go,'始める');else go();return}
+    if(t.dataset.c==='resume'){S=load();ui.draft={};if(S&&(S.phase==='deal'||S.phase==='vote'||S.peek!=null))S.cover=true;render();return}
+    if(t.dataset.hold){S.cover=false;ui.draft={};save();render()}
+  }
+})();
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&isSecretOpen()){S.cover=true;ui.draft={};save();render()}});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+
+render();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
+</script>
+</body>
+</html>

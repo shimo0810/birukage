@@ -1,0 +1,13 @@
+{
+  "name": "ひとこと演技",
+  "short_name": "ひとこと演技",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#2a1a10",
+  "theme_color": "#2a1a10",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
